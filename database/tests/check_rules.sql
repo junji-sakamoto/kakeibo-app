@@ -7,6 +7,10 @@
 -- ============================================================
 
 SET NAMES utf8mb4;
+
+-- 確認で使うカテゴリ（支出用の「食費」）の番号を調べておく
+SET @food_id = (SELECT id FROM categories WHERE type = 'expense' AND name = '食費');
+
 START TRANSACTION;
 
 -- ------------------------------------------------------------
@@ -69,17 +73,17 @@ SELECT ROW_COUNT() AS 削除した件数;
 -- ------------------------------------------------------------
 SELECT '確認8：金額が 0 円の記録は登録できない（ERROR 3819 が出れば合格）' AS 確認;
 -- ------------------------------------------------------------
-INSERT INTO records (category_id, recorded_on, amount) VALUES (3, '2026-11-01', 0);
+INSERT INTO records (category_id, recorded_on, amount) VALUES (@food_id, '2026-11-01', 0);
 
 -- ------------------------------------------------------------
 SELECT '確認9：金額が 10,000,000 円の記録は登録できない（ERROR 3819 が出れば合格）' AS 確認;
 -- ------------------------------------------------------------
-INSERT INTO records (category_id, recorded_on, amount) VALUES (3, '2026-11-01', 10000000);
+INSERT INTO records (category_id, recorded_on, amount) VALUES (@food_id, '2026-11-01', 10000000);
 
 -- ------------------------------------------------------------
 SELECT '確認10：日付が範囲外（1999-12-31）の記録は登録できない（ERROR 3819 が出れば合格）' AS 確認;
 -- ------------------------------------------------------------
-INSERT INTO records (category_id, recorded_on, amount) VALUES (3, '1999-12-31', 100);
+INSERT INTO records (category_id, recorded_on, amount) VALUES (@food_id, '1999-12-31', 100);
 
 -- ------------------------------------------------------------
 SELECT '確認11：ないカテゴリの番号を使った記録は登録できない（ERROR 1452 が出れば合格）' AS 確認;
@@ -89,7 +93,7 @@ INSERT INTO records (category_id, recorded_on, amount) VALUES (9999, '2026-11-01
 -- ------------------------------------------------------------
 SELECT '確認12：メモが 101 文字の記録は登録できない（ERROR 1406 が出れば合格）' AS 確認;
 -- ------------------------------------------------------------
-INSERT INTO records (category_id, recorded_on, amount, memo) VALUES (3, '2026-11-01', 100, REPEAT('あ', 101));
+INSERT INTO records (category_id, recorded_on, amount, memo) VALUES (@food_id, '2026-11-01', 100, REPEAT('あ', 101));
 
 -- ------------------------------------------------------------
 SELECT '確認13：種類が income・expense 以外のカテゴリは登録できない（ERROR 3819 が出れば合格）' AS 確認;
@@ -109,8 +113,18 @@ INSERT INTO categories (type, name) VALUES ('expense', REPEAT('あ', 21));
 -- ------------------------------------------------------------
 SELECT '確認16：正しい記録は登録でき、メモを省くと空の文字になる（1件登録されれば合格）' AS 確認;
 -- ------------------------------------------------------------
-INSERT INTO records (category_id, recorded_on, amount) VALUES (3, '2026-11-01', 9999999);
+INSERT INTO records (category_id, recorded_on, amount) VALUES (@food_id, '2026-11-01', 9999999);
 SELECT id AS 番号, amount AS 金額, CONCAT('[', memo, ']') AS メモ FROM records WHERE id = LAST_INSERT_ID();
+
+-- ------------------------------------------------------------
+SELECT '確認17：カテゴリの並び順は登録した順で、「その他」はいつも一番下（新しく登録した「ペット」が「その他」のすぐ上なら合格）' AS 確認;
+-- ------------------------------------------------------------
+INSERT INTO categories (type, name) VALUES ('expense', 'ペット');
+SELECT name AS 支出用のカテゴリ
+FROM categories
+WHERE type = 'expense'
+  AND name IN ('交際費', 'ペット', 'その他')
+ORDER BY (name = 'その他'), id;
 
 -- ------------------------------------------------------------
 -- ここまでの変更をすべて取り消す
@@ -118,7 +132,7 @@ SELECT id AS 番号, amount AS 金額, CONCAT('[', memo, ']') AS メモ FROM rec
 ROLLBACK;
 
 -- ------------------------------------------------------------
-SELECT '確認17：取り消したあと、元の件数（カテゴリ 7件・記録 22件）に戻っている' AS 確認;
+SELECT '確認18：取り消したあと、元の件数（カテゴリ 17件・記録 28件）に戻っている' AS 確認;
 -- ------------------------------------------------------------
 SELECT (SELECT COUNT(*) FROM categories) AS カテゴリの件数,
        (SELECT COUNT(*) FROM records)    AS 記録の件数;
