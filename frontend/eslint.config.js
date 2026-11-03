@@ -9,7 +9,7 @@ import pluginVue from 'eslint-plugin-vue';
 
 export default [
   // チェックしないもの（部品の置き場所・公開用に組み立てたファイル）
-  { ignores: ['node_modules/', 'dist/'] },
+  { ignores: ['node_modules/', 'dist/', 'test-results/', 'e2e-report/'] },
 
   // ESLint がすすめる基本の決まり
   js.configs.recommended,

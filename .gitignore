@@ -8,3 +8,7 @@ node_modules/
 
 # 画面側を公開用に組み立てたファイル。npm run build で作り直せるため
 dist/
+
+# E2E 試験（Playwright）の結果。npm run test:e2e で作り直せるため
+test-results/
+e2e-report/

@@ -230,6 +230,19 @@ describe('共通', () => {
     assert.equal(r.headers.get('x-frame-options'), 'SAMEORIGIN');
   });
 
+  test('SQL インジェクション対策：データベースへの命令のような文字も、ただの文字として保存され、テーブルは壊れない', async () => {
+    const memo = "'); DROP TABLE records; --";
+    const r = await call('POST', '/api/records', sample({ memo }));
+    assert.equal(r.status, 201);
+    assert.equal(r.body.memo, memo);
+    const list = await call('GET', '/api/records?month=2099-12');
+    assert.equal(list.status, 200); // records テーブルが残っていて、一覧を取り出せる
+    assert.ok(list.body.records.some((x) => x.memo === memo));
+    // 年月の条件に命令を混ぜても、受け付けない
+    const q = await call('GET', `/api/records?month=${encodeURIComponent("2099-12' OR '1'='1")}`);
+    assert.deepEqual([q.status, q.body], [400, { errors: { month: 'S04' } }]);
+  });
+
   test('大きすぎる本文（10KB より大きい）は 400（S04）', async () => {
     const r = await call('POST', '/api/records', sample({ memo: 'あ'.repeat(5000) }));
     assert.deepEqual([r.status, r.body], [400, { message: 'S04' }]);

@@ -13,7 +13,8 @@
     "dev": "node --env-file=.env --watch src/server.js",
     "test": "node --env-file=.env --test --test-concurrency=1 \"tests/**/*.test.js\"",
     "lint": "eslint .",
-    "build": "node --env-file=.env scripts/build-check.mjs"
+    "build": "node --env-file=.env scripts/build-check.mjs",
+    "perf": "node --env-file=.env scripts/perf-check.mjs"
   },
   "author": "坂本 順治",
   "license": "UNLICENSED",
