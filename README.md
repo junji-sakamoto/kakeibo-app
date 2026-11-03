@@ -78,7 +78,7 @@ kakeibo-app/
         └── 02_バックエンドの手順書.md
 ```
 
-プログラムは `frontend/`（画面側）・`backend/`（処理側）・`database/`（データベース）のフォルダに分けて作ります。今は `database/` と、`backend/` の一部（API11）ができています。
+プログラムは `frontend/`（画面側）・`backend/`（処理側）・`database/`（データベース）のフォルダに分けて作ります。今は `database/` と、`backend/` の一部（API11・記録の API1〜5）ができています。
 
 ## ブランチの使い方
 

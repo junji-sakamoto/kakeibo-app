@@ -10,7 +10,8 @@
   },
   "scripts": {
     "start": "node --env-file=.env src/server.js",
-    "dev": "node --env-file=.env --watch src/server.js"
+    "dev": "node --env-file=.env --watch src/server.js",
+    "test": "node --env-file=.env --test --test-concurrency=1 \"tests/**/*.test.js\""
   },
   "author": "坂本 順治",
   "license": "UNLICENSED",

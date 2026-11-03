@@ -5,6 +5,7 @@
 
 import express from 'express';
 import { healthRouter } from './routes/health.js';
+import { recordsRouter } from './routes/records.js';
 
 export function createApp() {
   const app = express();
@@ -17,6 +18,7 @@ export function createApp() {
 
   // ---------- API ----------
   app.use('/api/health', healthRouter); // API11
+  app.use('/api/records', recordsRouter); // API1〜API5
 
   // ---------- 決まっていないパスに送られたとき（S03） ----------
   app.use((req, res) => {
