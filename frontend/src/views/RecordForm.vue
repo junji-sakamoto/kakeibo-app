@@ -23,6 +23,7 @@ const backTo = computed(() => ({ path: '/records', query: { month: backMonth.val
 
 const loading = ref(true);
 const saving = ref(false); // 保存の途中は、ボタンを押せなくする（二重の登録を防ぐ）
+const loadError = ref(''); // カテゴリを読み込めなかったときのメッセージの番号（S01 など）
 const categories = ref([]);
 
 // 入力の値（登録のときの最初の値：今日・支出・未選択）
@@ -39,7 +40,9 @@ const onTypeChange = () => { form.categoryId = ''; };
 onMounted(async () => {
   const c = await api.getCategories(); // API6
   if (!c.ok) {
+    // 「カテゴリがない（N02）」のではなく「読み込めなかった」ので、入力欄は出さずに知らせる
     showToast(textOf(c.message), 'error');
+    loadError.value = c.message;
     loading.value = false;
     return;
   }
@@ -103,11 +106,18 @@ async function save() {
 
   <div v-if="loading" class="list"><p class="empty">{{ MSG.N04 }}</p></div>
 
+  <div v-else-if="loadError" class="list">
+    <div class="empty">
+      <p class="load-error">{{ textOf(loadError) }}</p>
+      <RouterLink class="btn" :to="backTo">戻る</RouterLink>
+    </div>
+  </div>
+
   <form v-else class="form" novalidate @submit.prevent="save">
     <div class="field" :class="{ 'has-error': errors.date }">
       <label class="field-label" for="f-date">日付<span class="required">＊</span></label>
-      <input id="f-date" v-model="form.date" type="date">
-      <p class="field-error">{{ errors.date && textOf(errors.date) }}</p>
+      <input id="f-date" v-model="form.date" type="date" :aria-invalid="errors.date ? 'true' : null" aria-describedby="err-date">
+      <p id="err-date" class="field-error">{{ errors.date && textOf(errors.date) }}</p>
     </div>
 
     <div class="field">
@@ -121,7 +131,7 @@ async function save() {
     <div class="field" :class="{ 'has-error': errors.category }">
       <label class="field-label" for="f-category">カテゴリ<span class="required">＊</span></label>
       <template v-if="options.length > 0">
-        <select id="f-category" v-model="form.categoryId">
+        <select id="f-category" v-model="form.categoryId" :aria-invalid="errors.category ? 'true' : null" aria-describedby="err-category">
           <option value="">選んでください</option>
           <option v-for="c in options" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
         </select>
@@ -131,20 +141,20 @@ async function save() {
         <select id="f-category" disabled><option>－</option></select>
         <p class="notice">{{ MSG.N02 }}</p>
       </template>
-      <p class="field-error">{{ errors.category && textOf(errors.category) }}</p>
+      <p id="err-category" class="field-error">{{ errors.category && textOf(errors.category) }}</p>
     </div>
 
     <div class="field" :class="{ 'has-error': errors.amount }">
       <label class="field-label" for="f-amount">金額<span class="required">＊</span></label>
-      <div class="amount-input"><input id="f-amount" v-model="form.amount" type="text" inputmode="numeric"> 円</div>
-      <p class="field-error">{{ errors.amount && textOf(errors.amount) }}</p>
+      <div class="amount-input"><input id="f-amount" v-model="form.amount" type="text" inputmode="numeric" :aria-invalid="errors.amount ? 'true' : null" aria-describedby="err-amount"> 円</div>
+      <p id="err-amount" class="field-error">{{ errors.amount && textOf(errors.amount) }}</p>
     </div>
 
     <div class="field" :class="{ 'has-error': errors.memo }">
       <label class="field-label" for="f-memo">メモ</label>
-      <input id="f-memo" v-model="form.memo" type="text">
+      <input id="f-memo" v-model="form.memo" type="text" :aria-invalid="errors.memo ? 'true' : null" aria-describedby="err-memo">
       <span class="hint">（100文字まで）</span>
-      <p class="field-error">{{ errors.memo && textOf(errors.memo) }}</p>
+      <p id="err-memo" class="field-error">{{ errors.memo && textOf(errors.memo) }}</p>
     </div>
 
     <div class="form-buttons">

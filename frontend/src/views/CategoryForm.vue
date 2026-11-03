@@ -81,14 +81,14 @@ async function save() {
         <label><input v-model="form.type" type="radio" name="type" value="income" :disabled="isEdit"> 収入用</label>
       </div>
       <span v-if="isEdit" class="hint">種類は、登録したあとは変えられません</span>
-      <p class="field-error">{{ errors.type && textOf(errors.type) }}</p>
+      <p id="err-type" class="field-error">{{ errors.type && textOf(errors.type) }}</p>
     </div>
 
     <div class="field" :class="{ 'has-error': errors.name }">
       <label class="field-label" for="f-name">名前<span class="required">＊</span></label>
-      <input id="f-name" v-model="form.name" type="text">
+      <input id="f-name" v-model="form.name" type="text" :aria-invalid="errors.name ? 'true' : null" aria-describedby="err-name">
       <span class="hint">（20文字まで）</span>
-      <p class="field-error">{{ errors.name && textOf(errors.name) }}</p>
+      <p id="err-name" class="field-error">{{ errors.name && textOf(errors.name) }}</p>
       <!-- 影響のお知らせ（N05）：修正のときで、記録で使われているときだけ -->
       <p v-if="isEdit && recordCount > 0" class="info">{{ N05(recordCount) }}</p>
     </div>

@@ -26,7 +26,7 @@ async function call(method, path, body, { raw = false } = {}) {
     body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
   });
   const text = await res.text();
-  return { status: res.status, body: text ? JSON.parse(text) : null };
+  return { status: res.status, body: text ? JSON.parse(text) : null, headers: res.headers };
 }
 
 // 正しい記録の見本（一部だけ変えて使う）
@@ -96,7 +96,8 @@ describe('API3 記録の登録', () => {
   });
 
   test('メモを省くと、空の文字になる', async () => {
-    const { memo, ...withoutMemo } = sample();
+    // メモ（memo）だけを取り除いた見本を作る（取り除いた値は使わないので、名前を「_」で始める）
+    const { memo: _memo, ...withoutMemo } = sample();
     const r = await call('POST', '/api/records', withoutMemo);
     assert.equal(r.status, 201);
     assert.equal(r.body.memo, '');
@@ -214,5 +215,23 @@ describe('共通', () => {
   test('決まっていないパスは 404（S03）', async () => {
     const r = await call('GET', '/api/records/1/extra');
     assert.deepEqual([r.status, r.body], [404, { message: 'S03' }]);
+  });
+
+  test('登録（201）のときは、できた記録の場所（Location）を返す', async () => {
+    const r = await call('POST', '/api/records', sample());
+    assert.equal(r.status, 201);
+    assert.equal(r.headers.get('location'), `/api/records/${r.body.id}`);
+  });
+
+  test('安全のための設定（ヘッダー）が付いている。使っている部品の名前は返さない', async () => {
+    const r = await call('GET', '/api/records?month=2099-12');
+    assert.equal(r.headers.get('x-powered-by'), null);
+    assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(r.headers.get('x-frame-options'), 'SAMEORIGIN');
+  });
+
+  test('大きすぎる本文（10KB より大きい）は 400（S04）', async () => {
+    const r = await call('POST', '/api/records', sample({ memo: 'あ'.repeat(5000) }));
+    assert.deepEqual([r.status, r.body], [400, { message: 'S04' }]);
   });
 });

@@ -75,7 +75,8 @@ categoriesRouter.post('/', async (req, res) => {
     }
     throw err;
   }
-  res.status(201).json(await findCategory(result.insertId));
+  // 201（作った）のときは、できたカテゴリの場所（Location）も返す（REST の決まりごと）
+  res.status(201).location(`/api/categories/${result.insertId}`).json(await findCategory(result.insertId));
 });
 
 // ------------------------------------------------------------

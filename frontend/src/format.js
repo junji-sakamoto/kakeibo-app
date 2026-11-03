@@ -39,7 +39,7 @@ export function formatShortDate(ymd) {
 }
 
 // 金額：1200 →「1,200円」、-5200 →「-5,200円」
-export const formatYen = (n) => (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('ja-JP') + '円';
+export const formatYen = (n) => `${n < 0 ? '-' : ''}${Math.abs(n).toLocaleString('ja-JP')}円`;
 
 // 文字の長さ（絵文字なども1文字として数える）
 export const charLength = (text) => [...text].length;
