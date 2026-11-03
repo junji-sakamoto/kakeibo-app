@@ -155,6 +155,7 @@ const diff = (a, b) => [...a].filter((x) => !b.has(x));
     express: 'Express', mysql2: 'mysql2', helmet: 'helmet', eslint: 'ESLint', '@eslint/js': '@eslint/js', globals: 'globals',
     vue: 'Vue.js', 'vue-router': 'Vue Router', vite: 'Vite', '@vitejs/plugin-vue': '@vitejs/plugin-vue',
     'eslint-plugin-vue': 'eslint-plugin-vue', 'vue-eslint-parser': 'vue-eslint-parser', minimatch: 'minimatch',
+    '@playwright/test': '@playwright/test',
   };
   const written = (alias, version) => doc.some((l) => l.includes(alias) && l.includes(`**${version}**`));
   let count = 0;

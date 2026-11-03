@@ -1,8 +1,8 @@
 // ============================================================
 // 全体の品質チェック
 // 次の3つのまとまり（と、共通の確認）を順番に全部行い、結果を表にまとめる
-//   ① フロントエンド：ESLint の実行・ビルド確認・アンチパターンチェック（＋部品の弱点）
-//   ② バックエンド　：Checkstyle にあたるもの（ESLint）の実行・ビルド確認・アンチパターンチェック（＋試験・部品の弱点）
+//   ① フロントエンド：ESLint の実行・ビルド確認・アンチパターンチェック（＋E2E 試験・部品の弱点）
+//   ② バックエンド　：Checkstyle にあたるもの（ESLint）の実行・ビルド確認・アンチパターンチェック（＋試験・性能の試験・部品の弱点）
 //   ③ ドキュメントの整合性：設計書と実装の乖離チェック（＋要件定義書が最新か・リンク切れ）
 //
 // 使い方（プロジェクトの一番上のフォルダで実行する。先にデータベースを起動しておく）
@@ -86,6 +86,14 @@ heading('① フロントエンド');
 check('ESLint の実行（npm run lint）', 'npm run lint --silent', 'frontend', { note: lintNote });
 check('ビルド確認（npm run build）', 'npm run build --silent', 'frontend', { note: last(/built in [\d.]+m?s/) });
 antipattern('frontend');
+if (dbReady) {
+  // 画面を操作する E2E 試験（Edge と Chrome の両方）。処理側・画面側は、動いていなければ自動で起動する
+  check('E2E 試験（npm run test:e2e：Edge・Chrome）', 'npm run test:e2e --silent', 'frontend', {
+    note: (o) => [last(/\d+ passed/)(o), last(/\d+ failed/)(o), last(/\d+ flaky/)(o)].filter(Boolean).join('・'),
+  });
+} else {
+  record('E2E 試験（npm run test:e2e：Edge・Chrome）', false, 'データベースが起動していないため、行えませんでした');
+}
 check('部品の弱点（npm audit）', 'npm audit', 'frontend', { note: auditNote });
 
 // ============================================================
@@ -112,8 +120,12 @@ if (dbReady) {
       okWhen: (r, o) => (o.match(/^ERROR /gm) || []).length === 10 && /確認18/.test(o),
       note: (o) => `決まりどおりのエラー ${(o.match(/^ERROR /gm) || []).length} / 10 件`,
     });
+  // 性能の試験（記録1万件・10人が同時に使っても3秒以内）
+  check('試験：性能（npm run perf：記録1万件・10人同時で3秒以内）', 'npm run perf --silent', 'backend', {
+    note: (o) => `いちばん遅いもの ${Math.max(...[...o.matchAll(/いちばん遅いもの (\d+) ミリ秒/g)].map((m) => Number(m[1])))} ミリ秒`,
+  });
 } else {
-  record('試験：API・データベースの決まり', false, 'データベースが起動していないため、行えませんでした');
+  record('試験：API・データベースの決まり・性能', false, 'データベースが起動していないため、行えませんでした');
 }
 check('部品の弱点（npm audit）', 'npm audit', 'backend', { note: auditNote });
 
