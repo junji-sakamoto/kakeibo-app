@@ -6,8 +6,10 @@ name: kakeibo
 
 services:
   # データベース（MySQL 8.4）
+  # 版は細かい版まで固定する（作り直しても同じ版になるように）
+  # 版を上げるときは、docs/03_手順書/00_開発環境と版の一覧.md の手順で行い、記録を残す
   db:
-    image: mysql:8.4
+    image: mysql:8.4.13
     container_name: kakeibo-db
     # パスワードなどの秘密の情報は .env ファイルから読み込む（.env は GitHub に上げない）
     env_file: .env

@@ -1,0 +1,21 @@
+{
+  "name": "kakeibo-backend",
+  "version": "1.0.0",
+  "description": "家計簿アプリの処理側（バックエンド）。画面側からのお願いを受けて、データベースに読み書きする",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": "26.x"
+  },
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --env-file=.env --watch src/server.js"
+  },
+  "author": "坂本 順治",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "5.3.0",
+    "mysql2": "3.24.6"
+  }
+}
