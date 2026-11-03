@@ -154,7 +154,7 @@ a { color: var(--color-primary); }
 }
 .list-row {
   display: grid;
-  grid-template-columns: 8.5em 4em 7em 8em 1fr auto;
+  grid-template-columns: 8.5rem 4rem 7rem 8rem 1fr 7.5rem;   /* 見出しの行と列をそろえるため、最後（修正・削除）も幅を決め、文字の大きさに左右されない rem を使う */
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
@@ -299,10 +299,12 @@ a { color: var(--color-primary); }
   /* 一覧の見出しは隠し、1件を2行で表示する */
   .list-head { display: none; }
   .list-row {
-    grid-template-columns: auto auto 1fr auto;
+    /* 1行目：日付・金額、2行目：種類・カテゴリ・修正と削除、3行目：メモ */
+    grid-template-columns: auto 1fr auto;
     grid-template-areas:
-      "date type category amount"
-      "memo memo memo actions";
+      "date date amount"
+      "type category actions"
+      "memo memo memo";
     row-gap: 4px;
   }
   .list-row .date { grid-area: date; }
@@ -310,7 +312,8 @@ a { color: var(--color-primary); }
   .list-row .category { grid-area: category; }
   .list-row .amount { grid-area: amount; font-weight: bold; }
   .list-row .memo { grid-area: memo; color: var(--color-muted); font-size: 14px; }
-  .list-row .actions { grid-area: actions; }
+  .list-row .memo:empty { display: none; }   /* メモがないときは3行目を作らない */
+  .list-row .actions { grid-area: actions; justify-self: end; }
 
   .form { padding: 16px; }
 }

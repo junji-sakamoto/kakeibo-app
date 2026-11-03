@@ -5,3 +5,6 @@
 
 # 部品（ライブラリ）の置き場所。npm install で作り直せるため
 node_modules/
+
+# 画面側を公開用に組み立てたファイル。npm run build で作り直せるため
+dist/
