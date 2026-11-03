@@ -67,3 +67,21 @@ export function validateRecord(body) {
     value: { date: input.date, categoryId: input.categoryId, amount: input.amount, memo },
   };
 }
+
+// カテゴリの入力をチェックする（API8・API9）
+// withType：種類もチェックするか（登録のときは true。修正のときは種類を変えられないので false）
+// 戻り値：{ errors: { 項目: 番号 }, value: { type, name } }
+export function validateCategory(body, { withType }) {
+  const input = body && typeof body === 'object' && !Array.isArray(body) ? body : {};
+  const errors = {};
+
+  // 種類（E03）
+  if (withType && !['income', 'expense'].includes(input.type)) errors.type = 'E03';
+
+  // 名前（E09・E10）。前後の空白（全角の空白も）は取り除く。空白だけの名前は空とみなす
+  const name = typeof input.name === 'string' ? input.name.trim() : '';
+  if (name === '') errors.name = 'E09';
+  else if (charLength(name) > 20) errors.name = 'E10';
+
+  return { errors, value: { type: input.type, name } };
+}
