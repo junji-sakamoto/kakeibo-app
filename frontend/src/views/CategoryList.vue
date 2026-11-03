@@ -9,6 +9,7 @@ import { MSG, Q02, textOf } from '../messages.js';
 import { showToast, askConfirm } from '../store.js';
 
 const loading = ref(true);
+const loadError = ref(''); // 読み込めなかったときのメッセージの番号（S01 など）
 const categories = ref([]);
 
 // 支出用・収入用の順に表示する（それぞれの並び順は、処理側から届いた順：「その他」は一番下）
@@ -19,13 +20,21 @@ const sections = computed(() => [
 
 // カテゴリの一覧を読み込む（API6）
 async function load() {
+  loadError.value = '';
   const r = await api.getCategories();
   loading.value = false;
   if (!r.ok) {
+    // 「カテゴリがない」のではなく「読み込めなかった」ので、「カテゴリがありません。」とは表示しない
     showToast(textOf(r.message), 'error');
+    loadError.value = r.message;
     return;
   }
   categories.value = r.data.categories;
+}
+
+async function reload() {
+  loading.value = true;
+  await load();
 }
 onMounted(load);
 
@@ -51,6 +60,13 @@ async function remove(c) {
   </div>
 
   <div v-if="loading" class="list"><p class="empty">{{ MSG.N04 }}</p></div>
+
+  <div v-else-if="loadError" class="list">
+    <div class="empty">
+      <p class="load-error">{{ textOf(loadError) }}</p>
+      <button type="button" class="btn" @click="reload">読み込み直す</button>
+    </div>
+  </div>
 
   <template v-else>
     <section v-for="s in sections" :key="s.type" class="category-section">

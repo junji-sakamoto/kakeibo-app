@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint ."
   },
   "author": "坂本 順治",
   "license": "UNLICENSED",
@@ -19,7 +20,15 @@
     "vue-router": "5.4.0"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@vitejs/plugin-vue": "6.0.10",
-    "vite": "8.3.5"
+    "eslint": "10.14.0",
+    "eslint-plugin-vue": "10.12.0",
+    "globals": "17.14.0",
+    "vite": "8.3.5",
+    "vue-eslint-parser": "10.4.1"
+  },
+  "overrides": {
+    "minimatch": "11.0.4"
   }
 }

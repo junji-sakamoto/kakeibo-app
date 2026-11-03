@@ -309,3 +309,6 @@ a { color: var(--color-primary); }
 
   .form { padding: 16px; }
 }
+
+/* 読み込めなかったときのお知らせ（一覧などの場所に表示する） */
+.load-error { margin: 0 0 12px; color: var(--color-error); font-weight: bold; }

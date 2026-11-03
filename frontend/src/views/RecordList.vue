@@ -20,23 +20,30 @@ const TYPE_LABEL = { income: '収入', expense: '支出' };
 const month = computed(() => (isValidMonth(route.query.month) ? route.query.month : thisMonth()));
 
 const loading = ref(true);
+const loadError = ref(''); // 読み込めなかったときのメッセージの番号（S01 など）
 const records = ref([]);
-const totals = ref({ income: 0, expense: 0, balance: 0 });
+const totals = ref(null); // 読み込めなかったときは null（「0円」と表示しないため）
 
 // 記録の一覧と合計を読み込む（API1）
 async function load() {
   loading.value = true;
+  loadError.value = '';
   const r = await api.getRecords(month.value);
   loading.value = false;
   if (!r.ok) {
+    // 「記録がない」のではなく「読み込めなかった」ので、0件・0円とは表示しない
     showToast(textOf(r.message), 'error');
+    loadError.value = r.message;
     records.value = [];
-    totals.value = { income: 0, expense: 0, balance: 0 };
+    totals.value = null;
     return;
   }
   records.value = r.data.records;
   totals.value = r.data.totals;
 }
+
+// 合計の表示（読み込めなかったときは「－」）
+const show = (n) => (totals.value === null ? '－' : formatYen(n));
 
 // 表示する月が変わったら、読み込み直す（最初に開いたときも）
 watch(month, load, { immediate: true });
@@ -64,9 +71,9 @@ async function remove(r) {
   </div>
 
   <div class="summary">
-    <div class="summary-card income"><div class="label">収入</div><div class="value">{{ formatYen(totals.income) }}</div></div>
-    <div class="summary-card expense"><div class="label">支出</div><div class="value">{{ formatYen(totals.expense) }}</div></div>
-    <div class="summary-card"><div class="label">差額</div><div class="value" :class="{ 'is-minus': totals.balance < 0 }">{{ formatYen(totals.balance) }}</div></div>
+    <div class="summary-card income"><div class="label">収入</div><div class="value">{{ show(totals?.income) }}</div></div>
+    <div class="summary-card expense"><div class="label">支出</div><div class="value">{{ show(totals?.expense) }}</div></div>
+    <div class="summary-card"><div class="label">差額</div><div class="value" :class="{ 'is-minus': totals?.balance < 0 }">{{ show(totals?.balance) }}</div></div>
   </div>
 
   <div class="page-head">
@@ -76,6 +83,10 @@ async function remove(r) {
 
   <div class="list">
     <p v-if="loading" class="empty">{{ MSG.N04 }}</p>
+    <div v-else-if="loadError" class="empty">
+      <p class="load-error">{{ textOf(loadError) }}</p>
+      <button type="button" class="btn" @click="load">読み込み直す</button>
+    </div>
     <p v-else-if="records.length === 0" class="empty">{{ MSG.N01 }}</p>
     <template v-else>
       <div class="list-row list-head"><span>日付</span><span>種類</span><span>カテゴリ</span><span class="amount">金額</span><span>メモ</span><span></span></div>

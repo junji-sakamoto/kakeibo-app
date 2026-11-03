@@ -11,12 +11,22 @@
   "scripts": {
     "start": "node --env-file=.env src/server.js",
     "dev": "node --env-file=.env --watch src/server.js",
-    "test": "node --env-file=.env --test --test-concurrency=1 \"tests/**/*.test.js\""
+    "test": "node --env-file=.env --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "lint": "eslint ."
   },
   "author": "坂本 順治",
   "license": "UNLICENSED",
   "dependencies": {
     "express": "5.3.0",
+    "helmet": "8.3.0",
     "mysql2": "3.24.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.14.0",
+    "globals": "17.14.0"
+  },
+  "overrides": {
+    "minimatch": "11.0.4"
   }
 }

@@ -4,6 +4,7 @@
 // ============================================================
 
 import express from 'express';
+import helmet from 'helmet';
 import { healthRouter } from './routes/health.js';
 import { recordsRouter } from './routes/records.js';
 import { categoriesRouter } from './routes/categories.js';
@@ -11,8 +12,10 @@ import { categoriesRouter } from './routes/categories.js';
 export function createApp() {
   const app = express();
 
-  // 使っている部品の名前を、返す結果に書かない（攻撃の手がかりを減らすため）
-  app.disable('x-powered-by');
+  // 安全のための HTTP の設定（ヘッダー）をまとめて付ける（Express で標準的に使われる helmet）
+  // ・使っている部品の名前（X-Powered-By）を返す結果に書かない（攻撃の手がかりを減らす）
+  // ・ほかのサイトの中に、この画面をはめ込ませない（クリックジャッキング対策） など
+  app.use(helmet());
 
   // 送られてきた本文（JSON）を読み取る。大きすぎる本文は受け付けない
   app.use(express.json({ limit: '10kb' }));
@@ -28,9 +31,9 @@ export function createApp() {
   });
 
   // ---------- 共通のエラー処理 ----------
-  // eslint-disable-next-line no-unused-vars
-  app.use((err, req, res, next) => {
-    // 本文が JSON として読めないとき（S04）
+  // Express は「引数が4つの関数」をエラー処理とみなすので、使わない4つ目（_next）も書いておく
+  app.use((err, req, res, _next) => {
+    // 本文が JSON として読めない・大きすぎる（10KB より大きい）とき（S04）
     if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large') {
       res.status(400).json({ message: 'S04' });
       return;

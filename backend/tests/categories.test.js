@@ -77,9 +77,11 @@ describe('API6 カテゴリの一覧', () => {
 // ------------------------------------------------------------
 describe('API8 カテゴリの登録', () => {
   test('正しいカテゴリは 201 で登録され、名前の前後の空白（全角も）は取り除かれる', async () => {
-    const r = await call('POST', '/api/categories', { type: 'income', name: '　 試験用お祝い 　' });
-    assert.equal(r.status, 201);
-    assert.deepEqual({ ...r.body, id: 0 }, { id: 0, type: 'income', name: '試験用お祝い' });
+    const res = await fetch(`${base}/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'income', name: '　 試験用お祝い 　' }) });
+    const body = await res.json();
+    assert.equal(res.status, 201);
+    assert.deepEqual({ ...body, id: 0 }, { id: 0, type: 'income', name: '試験用お祝い' });
+    assert.equal(res.headers.get('location'), `/api/categories/${body.id}`); // できたカテゴリの場所（Location）
   });
 
   test('名前が空・空白だけ・文字でないときは E09、21文字は E10、20文字は登録できる', async () => {
@@ -87,9 +89,9 @@ describe('API8 カテゴリの登録', () => {
       const r = await call('POST', '/api/categories', { type: 'expense', name });
       assert.deepEqual([r.status, r.body], [400, { errors: { name: 'E09' } }], String(name));
     }
-    const over = await call('POST', '/api/categories', { type: 'expense', name: '試験用' + 'あ'.repeat(18) });
+    const over = await call('POST', '/api/categories', { type: 'expense', name: `試験用${'あ'.repeat(18)}` });
     assert.deepEqual([over.status, over.body], [400, { errors: { name: 'E10' } }]);
-    const just = await call('POST', '/api/categories', { type: 'expense', name: '試験用' + 'あ'.repeat(17) });
+    const just = await call('POST', '/api/categories', { type: 'expense', name: `試験用${'あ'.repeat(17)}` });
     assert.equal(just.status, 201);
   });
 
