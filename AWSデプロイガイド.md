@@ -28,15 +28,14 @@
 
 | もの | 名前 | 作り方 | 状態 | 料金（1日） |
 |---|---|---|---|---|
-| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・**Node.js 26.13.0 入り**） | Terraform | **🟢 動いている**（2026年11月5日に作り直した） | 約 0.15 ドル（公開の住所とディスク。EC2 本体は 2026年12月31日まで無料トライアル） |
-| 門番（セキュリティグループ） | `kakeibo-app`（入口：22番・5173番を自分の IP からだけ） | Terraform | 🟢 あり | 0 ドル |
-| SSH の鍵（AWS に登録した公開鍵） | `kakeibo-ec2` | Terraform | 🟢 あり | 0 ドル |
+| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・起動したときに Node.js 26.13.0 を自動で入れる） | Terraform | **⚪ 消した**（2026年11月5日。料金がかからないようにするため。次は3章の `plan`・`apply` で作り直す。Node.js も自動で入る） | 0 ドル |
+| 門番（セキュリティグループ） | `kakeibo-app`（入口：22番・5173番を自分の IP からだけ） | Terraform | ⚪ 消した（EC2 と一緒に） | 0 ドル |
+| SSH の鍵（AWS に登録した公開鍵） | `kakeibo-ec2` | Terraform | ⚪ 消した（パソコンの中の鍵 `~/.ssh/kakeibo-ec2` は残している） | 0 ドル |
 | S3 バケット（Terraform の記録） | `kakeibo-tfstate-（アカウントID）` | AWS CLI（2-2） | 🟢 あり（次の段階でも使うので残す） | ほぼ 0 ドル |
 | RDS | — | — | ⬜ まだ作っていない（第3段階） | — |
 
-- **今の料金の合計：1日約 0.15 ドル（約 23 円）**。無料プランのクレジットから引かれ、自分のお金は払いません
-- EC2 の中に入っているのは Node.js（と npm）です。アプリはまだ入れていません
-- **確かめのために、nginx を SSH で手で入れ、5173番で welcome 画面（Welcome to nginx!）を出しています**（2026年11月5日）。Terraform には書いていない一時的なものなので、EC2 を消すと一緒に消えます
+- **今の料金の合計：ほぼ 0 ドル**（S3 バケットの小さなファイルだけ）
+- 確かめのために SSH で手で入れた nginx（welcome 画面）は、EC2 と一緒に消えました。Terraform には書いていないので、作り直しても入りません
 - EC2 を消したあと、次に作るときは、2章の準備（SSH の鍵・S3 バケット・`terraform.tfvars`・`init`）はもう済んでいるので、**3章の `plan` から**始めます。自分の IP アドレスが変わっていたら、先に 2-3 で `my_ip` を直します
 
 > **EC2 を残すときの料金**：EC2 を残しておくと、EC2 本体が無料（2026年12月31日までの無料トライアル）でも、公開の住所（1日約 0.12 ドル）とディスク（1日約 0.03 ドル）の料金がかかります。止めても、ディスクの料金はかかります。そのため、使わないあいだは消しておき、使うときに作り直します。
@@ -312,4 +311,5 @@ AWS に作ったもの・変えたもの・消したものと、確かめた結�
 | 2026年11月5日 | 4-2：Node.js を確かめる | **失敗**：`cloud-init status` が `error`、`node -v` で `libatomic.so.1: cannot open shared object file`。Amazon Linux 2023 に libatomic が入っていないため |
 | 2026年11月5日 | `user_data.sh.tftpl` に `dnf -y install libatomic tar xz` を足して、`plan` → `apply` | `Plan: 1 to add, 1 to destroy`（EC2 だけ作り直し）。**EC2 を作り直した** |
 | 2026年11月5日 | 4-2：Node.js を確かめる | **成功**：`status: done`、`node v26.13.0`・`npm 11.20.0`（自分のパソコンと同じ）、`node -e` で計算できた、CPU は arm64。待ち受けているのは 22番だけ |
-| 2026年11月5日 | 自分のパソコンのブラウザから、EC2 の画面が見えるかの確かめ（一時的）：SSH で `sudo dnf -y install nginx` し、`/etc/nginx/nginx.conf` の `listen 80` を `5173` に変えて起動 | nginx 1.30.6。EC2 の中でも、自分のパソコンからも `http://（EC2 の住所）:5173/` で「Welcome to nginx!」（状態 200）が出た。門番（5173番を自分の IP からだけ）を通って届くことを確認。Terraform には書いていない（EC2 を消すと消える） |
+| 2026年11月5日 | 自分のパソコンのブラウザから、EC2 の画面が見えるかの確かめ（一時的）：SSH で `sudo dnf -y install nginx` し、`/etc/nginx/nginx.conf` の `listen 80` を `5173` に変えて起動 | nginx 1.30.6。EC2 の中でも、自分のパソコンからも `http://（EC2 の住所）:5173/` で「Welcome to nginx!」（状態 200）が出た。門番（5173番を自分の IP からだけ）を通って届くことを確認。Terraform には書いていない（EC2 を消すと消える）。坂本さんもブラウザで確認した |
+| 2026年11月5日 | 6章：`terraform destroy`（いったん終わりにするため、料金がかからない状態にする） | `Plan: 6 to destroy` を確かめてから消した。**EC2・門番・SSH の鍵（AWS の方）を消した**。EC2 は terminated、ディスクも消えた。残っているのは S3 バケットだけ |
