@@ -128,7 +128,7 @@ test('スマートフォンの横幅（375）でも、どの画面も横には�
   const food = await categoryId(request, 'expense', '食費');
   await createRecord(request, { date: '2099-12-01', categoryId: food, amount: 1234567, memo: 'とても長いメモとても長いメモとても長いメモとても長いメモとても長いメモ' });
   await page.setViewportSize({ width: 375, height: 800 });
-  for (const path of ['/records?month=2099-12', '/records/new', '/categories', '/categories/new']) {
+  for (const path of ['/records?month=2099-12', '/records/new', '/categories', '/categories/new', '/yearly?year=2099']) {
     await page.goto(path);
     await expect(page.locator('.page-title, .month-label').first()).toBeVisible();
     const width = await page.evaluate(() => document.documentElement.scrollWidth);
