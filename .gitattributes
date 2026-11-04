@@ -1,3 +1,5 @@
 # Git が改行の形を変えないようにするファイルの一覧
 # フックは Windows でも Linux の書き方（改行は LF）で動くため、LF のままにする
 .githooks/* text eol=lf
+# EC2（Linux）で動かす準備の手順も LF のままにする
+infra/*.tftpl text eol=lf
