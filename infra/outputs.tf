@@ -22,9 +22,14 @@ output "db_endpoint" {
   value       = aws_db_instance.main.address
 }
 
-output "db_admin_secret_arn" {
-  description = "RDS の管理者のパスワードが置いてある場所（Secrets Manager）"
-  value       = aws_db_instance.main.master_user_secret[0].secret_arn
+output "db_admin_username" {
+  description = "RDS の管理者の名前"
+  value       = aws_db_instance.main.username
+}
+
+output "db_admin_password_parameter" {
+  description = "RDS の管理者のパスワードが置いてある場所（SSM パラメータストア）"
+  value       = aws_ssm_parameter.db_admin_password.name
 }
 
 output "db_app_password_parameter" {

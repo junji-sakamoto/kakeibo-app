@@ -11,7 +11,7 @@
 | 章 | すること | AWS が変わるか | お金 |
 |---|---|---|---|
 | 1 | はじめの1回だけの準備（SSH の鍵・記録の置き場所・設定の値） | S3 バケットを1つ作る | ほぼ 0 円 |
-| 2 | Terraform で作る（`plan` → `apply`） | **変わる** | **かかり始める**（月約27ドル） |
+| 2 | Terraform で作る（`plan` → `apply`） | **変わる** | **かかり始める**（1日約0.85ドル。クレジットから引かれる） |
 | 3 | EC2 の準備が終わったか確かめる | 変わらない | — |
 | 4 | 初めてアプリを載せる（データベースの準備も） | EC2 と RDS の中が変わる | — |
 | 5 | 公開のアドレスで確かめる | 変わらない | — |
@@ -28,12 +28,12 @@
 infra/
 ├── versions.tf                ← Terraform と AWS プロバイダーの版、記録の置き場所（S3）、札
 ├── variables.tf               ← 外から渡す値
-├── network.tf                 ← VPC・サブネット・出入口・道案内
+├── network.tf                 ← デフォルト VPC とサブネットを読む（作らない）
 ├── security.tf                ← 門番（セキュリティグループ）
 ├── compute.tf                 ← EC2・固定の住所（Elastic IP）・SSH の公開鍵
 ├── user_data.sh.tftpl         ← EC2 が初めて起動したときの準備（nginx・Node.js・処理側のサービス）
 ├── iam.tf                     ← EC2 に渡す権限
-├── database.tf                ← RDS・アプリ用のパスワード
+├── database.tf                ← RDS・管理者とアプリ用のパスワード（SSM パラメータストア）
 ├── cdn.tf                     ← CloudFront（https の入口）
 ├── budget.tf                  ← 予算の見張り
 ├── outputs.tf                 ← 作ったあとに表示する値
@@ -135,12 +135,13 @@ terraform -chdir=infra plan -out=kakeibo.tfplan
 ```
 
 - **AWS には何も作られません**。作るものの一覧が表示されるだけです
-- 最後の行が `Plan: 28 to add, 0 to change, 0 to destroy.` になっていることを確かめます（初めてのときは「作る」だけで、「変える」「消す」は 0）
+- 最後の行が `Plan: 19 to add, 0 to change, 0 to destroy.` になっていることを確かめます（初めてのときは「作る」だけで、「変える」「消す」は 0）
 - `-out=kakeibo.tfplan` で、確かめた内容をファイルに残します。次の `apply` で、**確かめたとおりのもの**だけが作られます
 
 ### 2-2. 本当に作る（apply）
 
-> **ここからお金がかかり始めます**（月約27ドル。無料プランのクレジットから引かれます）。
+> **ここからお金がかかり始めます**（1日約0.85ドル、1か月つけっぱなしなら約25ドル。無料プランのクレジットから引かれます）。
+> 必要なときだけ作り、確かめが終わったら 10章の `terraform destroy` ですぐ消します（[構成設計書](../02_設計/07_構成設計書.md) 2章の「置いておく期間」）。
 
 ```powershell
 terraform -chdir=infra apply kakeibo.tfplan
@@ -295,23 +296,28 @@ aws freetier get-account-plan-state --region us-east-1 --query "accountPlanRemai
 
    plan に `aws_vpc_security_group_ingress_rule.ssh_from_my_ip` だけが出ることを確かめます
 
-## 10. 片付け（講師の確認が終わったら）
+## 10. 片付け（確かめが終わったとき・講師の確認が終わったとき）
 
-> **全部消えます。RDS のデータも戻せません。** 講師の確認が終わったことを確かめてから行います。
+> **全部消えます。RDS のデータも戻せません。** 本番環境は必要なときだけ作るので、確かめが終わったときも、講師の確認が終わったときも、この手順で消します。
 
-1. Terraform で作ったものを全部消します。消すものの一覧が出るので、確かめてから `yes` と打ちます（CloudFront を消すのに15分ほどかかります）
+| いつ | 行う手順 |
+|---|---|
+| 確かめのために作って、公開後の試験が終わったとき（また作り直す） | 1・2 だけ（S3 バケットと SSH の鍵は残す。次に作るときは 2章の `plan` から） |
+| 講師の確認が終わって、もう作り直さないとき | 1〜5 すべて |
+
+1. Terraform で作ったものを全部消します。消すものの一覧が出るので、確かめてから `yes` と打ちます（CloudFront を消すのに15分ほどかかります）。デフォルト VPC は Terraform で作ったものではないので消えません
 
    ```powershell
    terraform -chdir=infra destroy
    ```
 
-2. 家計簿のものが残っていないか確かめます（何も出なければよい。S3 バケットだけは次の 3. で消します）
+2. 家計簿のものが残っていないか確かめます（S3 バケットだけが出れば大丈夫です。S3 バケットは、もう作り直さないときに次の 3. で消します）
 
    ```powershell
    aws resourcegroupstaggingapi get-resources --tag-filters Key=Project,Values=kakeibo --query "ResourceTagMappingList[].ResourceARN"
    ```
 
-3. 記録の置き場所（S3 バケット）を消します。前の版も残しているので、版ごと全部消してから、バケットを消します
+3. （もう作り直さないときだけ）記録の置き場所（S3 バケット）を消します。前の版も残しているので、版ごと全部消してから、バケットを消します
 
    ```powershell
    $account = aws sts get-caller-identity --query Account --output text
@@ -326,8 +332,8 @@ aws freetier get-account-plan-state --region us-east-1 --query "accountPlanRemai
    aws s3api delete-bucket --bucket $bucket
    ```
 
-4. 次の月の請求で、家計簿の料金が 0 になったことを確かめます
-5. パソコンの中の、もう使わないものを消します（任意）
+4. （もう作り直さないときだけ）次の月の請求で、家計簿の料金が 0 になったことを確かめます
+5. （もう作り直さないときだけ）パソコンの中の、もう使わないものを消します（任意）
    - SSH の鍵：`C:\Users\坂本　順治\.ssh\kakeibo-ec2`・`kakeibo-ec2.pub`
    - `infra/terraform.tfvars`・`infra/.terraform` フォルダ
 

@@ -3,10 +3,10 @@
 # くわしくは docs/02_設計/07_構成設計書.md の 6章
 # ============================================================
 
-# RDS を置くサブネットのまとまり（外から入れないサブネット2つ）
+# RDS を置くサブネットのまとまり（デフォルト VPC のサブネット）
 resource "aws_db_subnet_group" "main" {
   name       = "kakeibo-db"
-  subnet_ids = [for s in aws_subnet.private : s.id]
+  subnet_ids = data.aws_subnets.default.ids
 }
 
 # RDS の設定（パラメータグループ）
@@ -37,8 +37,10 @@ resource "aws_db_instance" "main" {
   # 最初に作るデータベースの名前と、管理者の名前
   db_name  = "kakeibo"
   username = "kakeibo_admin"
-  # 管理者のパスワードは RDS が作って Secrets Manager に置く（Terraform の記録には残らない）
-  manage_master_user_password = true
+  # 管理者のパスワードは、下で作ったものを書き込むだけ（password_wo：Terraform の記録には残らない）。
+  # 置き場所は SSM パラメータストア（無料）。Secrets Manager（1つ月 0.40 ドル）は使わない
+  password_wo         = ephemeral.aws_secretsmanager_random_password.db_admin.random_password
+  password_wo_version = 1
 
   parameter_group_name   = aws_db_parameter_group.main.name
   db_subnet_group_name   = aws_db_subnet_group.main.name
@@ -64,14 +66,28 @@ resource "aws_db_instance" "main" {
 }
 
 # ------------------------------------------------------------
-# アプリ用の利用者（kakeibo_app）のパスワード
+# パスワード（管理者 kakeibo_admin と、アプリ用 kakeibo_app）
 # ------------------------------------------------------------
 
-# パスワードをその場で作る（ephemeral：Terraform の記録に残らない）
-ephemeral "aws_secretsmanager_random_password" "db_app" {
-  password_length = 32
-  # 記号を使わない（SQL やコマンドに書いたときに、記号の意味で困らないようにする）
+# パスワードをその場で作る（ephemeral：Terraform の記録に残らない。作るだけで、料金はかからない）
+# 記号を使わない（SQL やコマンドに書いたときに、記号の意味で困らないようにする）
+ephemeral "aws_secretsmanager_random_password" "db_admin" {
+  password_length     = 32
   exclude_punctuation = true
+}
+
+ephemeral "aws_secretsmanager_random_password" "db_app" {
+  password_length     = 32
+  exclude_punctuation = true
+}
+
+# 管理者のパスワードを、SSM パラメータストアに暗号化して置く（EC2 には読ませない。deploy.ps1 がパソコンから読む）
+resource "aws_ssm_parameter" "db_admin_password" {
+  name             = "/kakeibo/db/admin-password"
+  description      = "kakeibo_admin (MySQL) password"
+  type             = "SecureString"
+  value_wo         = ephemeral.aws_secretsmanager_random_password.db_admin.random_password
+  value_wo_version = 1
 }
 
 # 作ったパスワードを、SSM パラメータストアに暗号化して置く。

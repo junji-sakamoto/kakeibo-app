@@ -17,7 +17,7 @@ resource "aws_key_pair" "ssh" {
 resource "aws_instance" "app" {
   ami                    = data.aws_ssm_parameter.al2023_arm64.insecure_value
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public.id
+  subnet_id              = data.aws_subnet.app.id
   vpc_security_group_ids = [aws_security_group.app.id]
   key_name               = aws_key_pair.ssh.key_name
   iam_instance_profile   = aws_iam_instance_profile.app.name
@@ -30,9 +30,10 @@ resource "aws_instance" "app" {
     cpu_credits = "standard"
   }
 
+  # ディスクは、OS のイメージと同じ一番小さい 8GB（OS・Node.js・アプリには十分）
   root_block_device {
     volume_type = "gp3"
-    volume_size = 20
+    volume_size = 8
     encrypted   = true
   }
 
@@ -70,9 +71,6 @@ resource "aws_instance" "app" {
 resource "aws_eip" "app" {
   domain   = "vpc"
   instance = aws_instance.app.id
-
-  # 出入口ができてから付ける
-  depends_on = [aws_internet_gateway.main]
 
   tags = {
     Name = "kakeibo-app"

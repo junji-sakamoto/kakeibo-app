@@ -40,7 +40,8 @@ function Invoke-Checked([scriptblock]$block, [string]$what) {
 Step 'つなぎ先を読みます（terraform output）'
 $ip = terraform -chdir=infra output -raw public_ip
 $url = terraform -chdir=infra output -raw app_url
-$adminSecretArn = terraform -chdir=infra output -raw db_admin_secret_arn
+$adminUser = terraform -chdir=infra output -raw db_admin_username
+$adminPasswordParam = terraform -chdir=infra output -raw db_admin_password_parameter
 $appPasswordParam = terraform -chdir=infra output -raw db_app_password_parameter
 if (-not $ip) { throw 'EC2 の住所が読めませんでした。terraform -chdir=infra apply が終わっているか確かめてください' }
 $key = Join-Path $HOME '.ssh\kakeibo-ec2'
@@ -60,15 +61,15 @@ function ToBase64([string]$text) { [Convert]::ToBase64String([Text.Encoding]::UT
 
 # データベースの準備・お試しデータの戻し（backend/scripts/setup-db.mjs を EC2 の中で動かす）
 function Invoke-DbSetup([switch]$Reset) {
-  $admin = aws secretsmanager get-secret-value --secret-id $adminSecretArn --query SecretString --output text | ConvertFrom-Json
+  $adminPassword = aws ssm get-parameter --name $adminPasswordParam --with-decryption --query Parameter.Value --output text
   $appPassword = aws ssm get-parameter --name $appPasswordParam --with-decryption --query Parameter.Value --output text
-  if (-not $admin.password -or -not $appPassword) { throw 'パスワードが読めませんでした。aws login --profile kakeibo でログインしているか確かめてください' }
+  if (-not $adminPassword -or -not $appPassword) { throw 'パスワードが読めませんでした。aws login --profile kakeibo でログインしているか確かめてください' }
   $arg = if ($Reset) { '--reset' } else { '' }
   $remote = @"
 set -euo pipefail
 set -a; . /etc/kakeibo/backend.env; set +a
-export DB_ADMIN_USER="`$(echo '$(ToBase64 $admin.username)' | base64 -d)"
-export DB_ADMIN_PASSWORD="`$(echo '$(ToBase64 $admin.password)' | base64 -d)"
+export DB_ADMIN_USER="`$(echo '$(ToBase64 $adminUser)' | base64 -d)"
+export DB_ADMIN_PASSWORD="`$(echo '$(ToBase64 $adminPassword)' | base64 -d)"
 export DB_APP_PASSWORD="`$(echo '$(ToBase64 $appPassword)' | base64 -d)"
 cd /opt/kakeibo/backend
 node scripts/setup-db.mjs $arg

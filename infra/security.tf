@@ -14,7 +14,7 @@ data "aws_ec2_managed_prefix_list" "cloudfront" {
 resource "aws_security_group" "app" {
   name        = "kakeibo-app"
   description = "kakeibo EC2"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
 
   tags = {
     Name = "kakeibo-app"
@@ -55,7 +55,7 @@ resource "aws_vpc_security_group_egress_rule" "app_all" {
 resource "aws_security_group" "db" {
   name        = "kakeibo-db"
   description = "kakeibo RDS"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
 
   tags = {
     Name = "kakeibo-db"
