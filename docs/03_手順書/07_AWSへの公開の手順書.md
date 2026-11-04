@@ -123,9 +123,10 @@ terraform -chdir=infra init -backend-config="bucket=kakeibo-tfstate-$account"
 ### 2-1. 何が作られるか確かめる（plan）
 
 ```powershell
-terraform -chdir=infra plan -out=kakeibo.tfplan
+terraform -chdir=infra plan '-out=kakeibo.tfplan'
 ```
 
+- `'-out=kakeibo.tfplan'` は、**引用符（`'`）で囲みます**。囲まないと、PowerShell が `.` のところで2つに分けてしまい、`Error: Too many command line arguments` になります（2026年11月4日に実際に起きました）
 - **AWS には何も作られません**。作るものの一覧が表示されるだけです
 - 最後の行が `Plan: 6 to add, 0 to change, 0 to destroy.` になっていることを確かめます（SSH の鍵、門番、門番の入口2つ・出口1つ、EC2）
 - 門番の入口（`aws_vpc_security_group_ingress_rule`）の `cidr_ipv4` が、**自分の IP アドレス/32** になっていることを確かめます（`0.0.0.0/0` ではないこと）
@@ -185,7 +186,7 @@ ssh -i "$HOME\.ssh\kakeibo-ec2" ec2-user@$ip
 3. 門番の入口だけが変わることを確かめてから、変えます
 
    ```powershell
-   terraform -chdir=infra plan -out=kakeibo.tfplan
+   terraform -chdir=infra plan '-out=kakeibo.tfplan'
    terraform -chdir=infra apply kakeibo.tfplan
    Remove-Item infra\kakeibo.tfplan
    ```
@@ -218,6 +219,7 @@ ssh -i "$HOME\.ssh\kakeibo-ec2" ec2-user@$ip
 | `terraform` で `No valid credential sources found`・`ExpiredToken` | ログインの期限切れ、または `$env:AWS_PROFILE` の指定忘れ | 「毎回、最初にすること」を行う |
 | `terraform` で `Failed to load plugin schemas` | Norton が割り込んでいる | [AWS の認証設定の手順書](06_AWSの認証設定の手順書.md) の 8章 |
 | `terraform init` で、バケットが見つからない | 1-2 のバケットを作っていない、または名前が違う | 1-2 を行う。`-backend-config` のバケット名を確かめる |
+| `plan` で `Error: Too many command line arguments` | `-out=kakeibo.tfplan` を引用符で囲んでいない（PowerShell が `.` で分けてしまう） | `'-out=kakeibo.tfplan'` のように `'` で囲む |
 | `plan` で `my_ip` のエラー | `terraform.tfvars` に IP アドレスが書かれていない、または形が違う | 1-3 を行う（`/32` は付けない） |
 | `ssh` で `Connection timed out` | 自分の IP アドレスが変わった、または EC2 がまだ起動していない | 1分ほど待つ。それでもだめなら 4章 |
 | `ssh` で `Permission denied (publickey)` | 秘密鍵の場所が違う、または利用者の名前が違う | `-i "$HOME\.ssh\kakeibo-ec2"` と `ec2-user@` を確かめる |
@@ -228,4 +230,7 @@ ssh -i "$HOME\.ssh\kakeibo-ec2" ec2-user@$ip
 | 日付 | 確かめたこと | 結果 |
 |---|---|---|
 | 2026年11月4日 | 第1段階の Terraform のファイルの `validate`・`fmt -check` | 合格（AWS には何もしていない） |
-| （これから） | 1〜3章を実際に行う | |
+| 2026年11月4日 | 1章：SSH の鍵・S3 バケット（前の版に戻せる・公開しない・暗号化）・`terraform.tfvars`・`init` | できた |
+| 2026年11月4日 | 2章：`plan` → `apply` | `Plan: 6 to add`。門番の入口は 22番・5173番とも `（自分の IP）/32` だけ。`apply` で6つとも作れた（EC2 は13秒）。途中で `-out=kakeibo.tfplan` を引用符で囲まずにエラーになった → 手順書を直した |
+| 2026年11月4日 | 3章：SSH で入る | 入れた（`ec2-user`）。Amazon Linux 2023・`aarch64`（Arm）・ディスク 8.0G・メモリ 1.8Gi。Node.js はまだ入っていない（第2段階で入れる） |
+| 2026年11月4日 | 3章：門番 | AWS から読み取って、入口が 22番・5173番の2つだけ・どちらも `（自分の IP）/32` であることを確認。3000番・80番には、自分のパソコンからもつながらない |
