@@ -42,8 +42,8 @@ test.describe('画面4 カテゴリ入力画面（登録）', () => {
     await page.getByRole('button', { name: '保存する' }).click();
     await expect(page).toHaveURL(/\/categories$/);
     await expect(ui.toast(page)).toHaveText('カテゴリを登録しました。');
-    const expense = await names(page, '支出用').allTextContents();
-    expect(expense.slice(-2)).toEqual(['試験用E2Eペット', 'その他']);
+    // 一覧が新しくなるまで待ってから確かめる（1回だけ読むと、新しくなる前の一覧を読んでしまうことがある）
+    await expect.poll(async () => (await names(page, '支出用').allTextContents()).slice(-2)).toEqual(['試験用E2Eペット', 'その他']);
   });
 
   test('遷移12：名前の間違い（空白だけ E09・21文字 E10・同じ名前 E11）は項目の下に出し、「戻る」では保存しない', async ({ page, request }) => {
@@ -116,7 +116,8 @@ test.describe('カテゴリの削除', () => {
     await createCategory(request, 'income', '試験用E2E消す');
     await page.goto('/categories');
     await ui.categoryRow(page, '試験用E2E消す').getByRole('button', { name: '削除', exact: true }).click();
-    expect(await ui.dialog(page).locator('.dialog-message').textContent()).toBe('カテゴリ「試験用E2E消す」を削除しますか？\n削除すると元に戻せません。');
+    // 文字そのものを比べる。表示されるまで待つ（RP-29）
+    await expect.poll(() => ui.dialog(page).locator('.dialog-message').textContent()).toBe('カテゴリ「試験用E2E消す」を削除しますか？\n削除すると元に戻せません。');
     await ui.dialog(page).getByRole('button', { name: 'キャンセル' }).click();
     await expect(ui.categoryRow(page, '試験用E2E消す')).toHaveCount(1);
 

@@ -223,8 +223,8 @@ test.describe('記録の削除', () => {
 
     await ui.row(page, 'E2E削除').getByRole('button', { name: '削除', exact: true }).click();
     await expect(ui.dialog(page)).toBeVisible();
-    // toHaveText は空白（全角の空白・改行も）をまとめてしまうので、文字そのものを比べる
-    expect(await ui.dialog(page).locator('.dialog-message').textContent())
+    // toHaveText は空白（全角の空白・改行も）をまとめてしまうので、文字そのものを比べる（表示されるまで待つ：RP-29）
+    await expect.poll(() => ui.dialog(page).locator('.dialog-message').textContent())
       .toBe('この記録を削除しますか？\n（12月8日　支出　食費　1,200円）\n削除すると元に戻せません。');
 
     await ui.dialog(page).getByRole('button', { name: 'キャンセル' }).click();
