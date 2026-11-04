@@ -12,16 +12,18 @@ import { toast } from './store.js';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 
 const route = useRoute();
-// 今開いているのが「カテゴリ」のまとまりか（メニューを目立たせるため）
+// 今開いているのが「カテゴリ」「年間」のまとまりか（メニューを目立たせるため）
 const isCategory = computed(() => route.path.startsWith('/categories'));
+const isYearly = computed(() => route.path.startsWith('/yearly'));
 </script>
 
 <template>
   <header class="header">
-    <!-- 「家計簿」「記録」は今月の記録一覧へ（遷移15・16） -->
+    <!-- 「家計簿」「記録」は今月の記録一覧へ（遷移15・16）、「年間」は今年の年間集計へ（遷移21） -->
     <RouterLink class="header-title" to="/records">家計簿</RouterLink>
     <nav class="header-nav">
-      <RouterLink to="/records" :class="{ 'is-active': !isCategory }">記録</RouterLink>
+      <RouterLink to="/records" :class="{ 'is-active': !isCategory && !isYearly }">記録</RouterLink>
+      <RouterLink to="/yearly" :class="{ 'is-active': isYearly }">年間</RouterLink>
       <RouterLink to="/categories" :class="{ 'is-active': isCategory }">カテゴリ</RouterLink>
     </nav>
   </header>

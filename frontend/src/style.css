@@ -164,6 +164,22 @@ a { color: var(--color-primary); }
   text-overflow: ellipsis;   /* 長いメモは「…」で切る */
 }
 .list-row .actions { display: flex; gap: 6px; }
+
+/* ---------- 年間集計の表（画面5） ---------- */
+.year-row {
+  display: grid;
+  grid-template-columns: 5rem 1fr 1fr 1fr;   /* 月・収入・支出・差額 */
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+}
+.year-row:first-child { border-top: none; }
+.year-row .amount { text-align: right; font-variant-numeric: tabular-nums; }
+.year-row .month a { font-weight: bold; }
+.year-row .balance.is-minus { color: var(--color-expense); }
+.year-row .cell-label { display: none; }   /* スマートフォンのときだけ、見出しの代わりに表示する */
+
 .empty {
   padding: 32px 16px;
   text-align: center;
@@ -306,6 +322,22 @@ a { color: var(--color-primary); }
   .list-row .memo { grid-area: memo; color: var(--color-muted); font-size: 14px; }
   .list-row .memo:empty { display: none; }   /* メモがないときは3行目を作らない */
   .list-row .actions { grid-area: actions; justify-self: end; }
+
+  /* 年間集計の表：1か月を2行で表示する（1行目：月・差額、2行目：収入・支出） */
+  .year-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "month balance"
+      "income expense";
+    row-gap: 4px;
+  }
+  .year-row .month { grid-area: month; }
+  .year-row .income { grid-area: income; text-align: left; }
+  .year-row .expense { grid-area: expense; }
+  .year-row .balance { grid-area: balance; font-weight: bold; }
+  .year-row .income,
+  .year-row .expense { font-size: 14px; }
+  .year-row .cell-label { display: inline; margin-right: 6px; color: var(--color-muted); font-size: 13px; font-weight: normal; }
 
   .form { padding: 16px; }
 }

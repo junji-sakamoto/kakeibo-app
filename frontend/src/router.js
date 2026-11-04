@@ -8,6 +8,7 @@ import RecordList from './views/RecordList.vue';
 import RecordForm from './views/RecordForm.vue';
 import CategoryList from './views/CategoryList.vue';
 import CategoryForm from './views/CategoryForm.vue';
+import YearSummary from './views/YearSummary.vue';
 import NotFound from './views/NotFound.vue';
 import { clearOldToast } from './store.js';
 
@@ -24,6 +25,7 @@ export const router = createRouter({
     { path: '/categories', component: CategoryList }, // 画面3
     { path: '/categories/new', component: CategoryForm }, // 画面4（登録）
     { path: `/categories/${ID}/edit`, component: CategoryForm, props: true }, // 画面4（修正）
+    { path: '/yearly', component: YearSummary }, // 画面5（?year=2026 で年を選ぶ）
     { path: '/:pathMatch(.*)*', component: NotFound }, // 存在しないページ（S03）
   ],
   // 画面を切り替えたら、一番上から表示する
