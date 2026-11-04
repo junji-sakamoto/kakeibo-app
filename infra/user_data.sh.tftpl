@@ -1,0 +1,34 @@
+#!/bin/bash
+# ============================================================
+# EC2 が初めて起動したときに、1回だけ動く準備の手順（第2段階：Node.js を入れる）
+# Terraform（compute.tf）が、ドル記号と波かっこで囲んだ部分に値を入れてから EC2 に渡す
+# 進み具合は、EC2 に SSH で入って sudo tail -n 20 /var/log/cloud-init-output.log で見られる
+# ============================================================
+set -euxo pipefail
+
+# ------------------------------------------------------------
+# Node.js（自分のパソコンと同じ版）を、Node.js の公式のファイルから入れる
+#   - EC2 は Arm（aarch64）なので、linux-arm64 のファイルを使う
+#   - ファイルが壊れたり、すりかえられたりしていないか、公式の一覧（SHASUMS256.txt）で確かめる
+#   - npm（部品を入れる道具）も一緒に入る
+# ------------------------------------------------------------
+#   - Node.js が使う部品（libatomic）は Amazon Linux 2023 に初めから入っていないので、先に入れる
+#     （入れないと「libatomic.so.1: cannot open shared object file」で動かない。2026年11月5日に実際に起きた）
+dnf -y install libatomic tar xz
+
+NODE_VERSION="${node_version}"
+NODE_DIST="node-v$NODE_VERSION-linux-arm64"
+cd /tmp
+curl -fsSLO "https://nodejs.org/dist/v$NODE_VERSION/$NODE_DIST.tar.xz"
+curl -fsSLO "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt"
+grep " $NODE_DIST.tar.xz\$" SHASUMS256.txt | sha256sum -c -
+tar -xJf "$NODE_DIST.tar.xz" -C /opt
+# どこからでも node・npm・npx と打てるようにする
+for cmd in node npm npx; do
+  ln -sf "/opt/$NODE_DIST/bin/$cmd" "/usr/local/bin/$cmd"
+done
+rm -f "/tmp/$NODE_DIST.tar.xz" /tmp/SHASUMS256.txt
+
+node -v
+npm -v
+echo "第2段階の準備が終わりました（Node.js $NODE_VERSION）"

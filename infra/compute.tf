@@ -2,8 +2,9 @@
 # サーバー：EC2（Amazon Linux 2023、Arm）
 # くわしくは docs/02_設計/07_構成設計書.md の 5章
 #
-# 第1段階では、EC2 を作って SSH で入れることを確かめるだけ。
-# Node.js などを入れるのは、次の段階で行う（一気に作らず、1つずつ確かめるため）
+# 第1段階：EC2 を作って SSH で入れることを確かめた。
+# 第2段階：EC2 が初めて起動したときに、Node.js を自動で入れる（user_data.sh.tftpl）。
+# ほかのもの（アプリなど）は、あとの段階で入れる（一気に作らず、1つずつ確かめるため）
 # ============================================================
 
 # Amazon Linux 2023（Arm 用）の最新のイメージ
@@ -43,6 +44,15 @@ resource "aws_instance" "app" {
   metadata_options {
     http_tokens = "required"
   }
+
+  # 初めて起動したときに、Node.js を入れる（第2段階）。
+  # Windows で取り出すと改行が CRLF になることがあるので、LF にそろえて渡す
+  user_data = replace(templatefile("${path.module}/user_data.sh.tftpl", {
+    node_version = var.node_version
+  }), "\r\n", "\n")
+
+  # user_data は初めて起動したときにしか動かないので、中身を変えたら EC2 を作り直す
+  user_data_replace_on_change = true
 
   lifecycle {
     # 新しいイメージが出るたびに、作り直されないようにする

@@ -13,14 +13,14 @@
 
 ## 0. 今の状態
 
-**最後に更新した日：2026年11月4日**
+**最後に更新した日：2026年11月5日**
 
 ### 0-1. 進み具合
 
 | 段階 | 内容 | 状態 |
 |---|---|---|
-| **第1段階** | **EC2 を作り、SSH で入れることを確かめる** | **✅ 完了（2026年11月4日）**。確かめたあと、EC2 は消した |
-| 第2段階 | EC2 に Node.js を入れる | ⬜ これから |
+| 第1段階 | EC2 を作り、SSH で入れることを確かめる | ✅ 完了（2026年11月4日） |
+| **第2段階** | **EC2 に Node.js を入れる（Terraform の `user_data` で、起動したときに自動で入れる）** | **✅ 完了（2026年11月5日）** |
 | 第3段階 | RDS を作り、EC2 からつなぐ | ⬜ これから |
 | 第4段階 | アプリを載せて、自分のパソコンのブラウザで確かめる | ⬜ これから |
 
@@ -28,14 +28,15 @@
 
 | もの | 名前 | 作り方 | 状態 | 料金（1日） |
 |---|---|---|---|---|
-| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB） | Terraform | **⚪ 消した**（2026年11月4日。料金がかかるため。次の段階で、3章の `plan`・`apply` で作り直す） | 0 ドル |
-| 門番（セキュリティグループ） | `kakeibo-app`（入口：22番・5173番を自分の IP からだけ） | Terraform | ⚪ 消した（EC2 と一緒に） | 0 ドル |
-| SSH の鍵（AWS に登録した公開鍵） | `kakeibo-ec2` | Terraform | ⚪ 消した（パソコンの中の鍵 `~/.ssh/kakeibo-ec2` は残している） | 0 ドル |
+| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・**Node.js 26.13.0 入り**） | Terraform | **🟢 動いている**（2026年11月5日に作り直した） | 約 0.15 ドル（公開の住所とディスク。EC2 本体は 2026年12月31日まで無料トライアル） |
+| 門番（セキュリティグループ） | `kakeibo-app`（入口：22番・5173番を自分の IP からだけ） | Terraform | 🟢 あり | 0 ドル |
+| SSH の鍵（AWS に登録した公開鍵） | `kakeibo-ec2` | Terraform | 🟢 あり | 0 ドル |
 | S3 バケット（Terraform の記録） | `kakeibo-tfstate-（アカウントID）` | AWS CLI（2-2） | 🟢 あり（次の段階でも使うので残す） | ほぼ 0 ドル |
 | RDS | — | — | ⬜ まだ作っていない（第3段階） | — |
 
-- **今の料金の合計：ほぼ 0 ドル**（S3 バケットの小さなファイルだけ）
-- 次の段階では、2章の準備（SSH の鍵・S3 バケット・`terraform.tfvars`・`init`）はもう済んでいるので、**3章の `plan` から**始めます。自分の IP アドレスが変わっていたら、先に 2-3 で `my_ip` を直します
+- **今の料金の合計：1日約 0.15 ドル（約 23 円）**。無料プランのクレジットから引かれ、自分のお金は払いません
+- EC2 の中に入っているのは Node.js（と npm）だけです。アプリはまだ入れていません（待ち受けているのは 22番の SSH だけ）
+- EC2 を消したあと、次に作るときは、2章の準備（SSH の鍵・S3 バケット・`terraform.tfvars`・`init`）はもう済んでいるので、**3章の `plan` から**始めます。自分の IP アドレスが変わっていたら、先に 2-3 で `my_ip` を直します
 
 > **EC2 を残すときの料金**：EC2 を残しておくと、EC2 本体が無料（2026年12月31日までの無料トライアル）でも、公開の住所（1日約 0.12 ドル）とディスク（1日約 0.03 ドル）の料金がかかります。止めても、ディスクの料金はかかります。そのため、使わないあいだは消しておき、使うときに作り直します。
 
@@ -62,21 +63,22 @@ aws ec2 describe-instances --filters Name=tag:Project,Values=kakeibo --query "Re
 |---|---|---|---|
 | 2 | はじめの1回だけの準備（SSH の鍵・記録の置き場所・設定の値） | S3 バケットを1つ作る | ほぼ 0 円 |
 | 3 | Terraform で EC2 を作る（`plan` → `apply`） | **変わる** | **かかり始める**（1日約 0.15 ドル。クレジットから引かれる） |
-| 4 | EC2 に SSH で入って確かめる | 変わらない | — |
+| 4 | EC2 に SSH で入って確かめる（4-2：第2段階の Node.js も） | 変わらない | — |
 | 5 | 自分の IP アドレスが変わったとき | 門番を変える | — |
 | 6 | 片付け（確かめが終わったら） | **消える** | 止まる |
 | 7 | 困ったとき | — | — |
 | 8 | 変更の記録 | — | — |
 
-### 関係するファイル（第1段階）
+### 関係するファイル（第2段階まで）
 
 ```
 infra/
 ├── versions.tf                ← Terraform と AWS プロバイダーの版、記録の置き場所（S3）、札
-├── variables.tf               ← 外から渡す値（自分の IP アドレス、SSH の公開鍵、EC2 の大きさ、画面側のポート）
+├── variables.tf               ← 外から渡す値（自分の IP アドレス、SSH の公開鍵、EC2 の大きさ、Node.js の版、画面側のポート）
 ├── network.tf                 ← デフォルト VPC とサブネットを読む（作らない）
 ├── security.tf                ← 門番（22番・5173番を、自分の IP からだけ）
 ├── compute.tf                 ← EC2・SSH の公開鍵
+├── user_data.sh.tftpl         ← EC2 が初めて起動したときに動く準備の手順（第2段階：Node.js を入れる）
 ├── outputs.tf                 ← 作ったあとに表示する値
 ├── terraform.tfvars.example   ← 外から渡す値の見本（GitHub に上げる）
 ├── terraform.tfvars           ← 外から渡す本物の値（GitHub に上げない）
@@ -221,6 +223,20 @@ ssh -i "$HOME\.ssh\kakeibo-ec2" ec2-user@$ip
 
   `22` と `5173` の2つだけが、自分の IP アドレス（`…/32`）で出れば大丈夫です
 
+### 4-2. Node.js が入ったか確かめる（第2段階）
+
+EC2 は、初めて起動したときに、`infra/user_data.sh.tftpl` の手順で Node.js を自動で入れます（1分ほどかかります）。SSH で入ってから、次のコマンドで確かめます。
+
+```bash
+cloud-init status --wait          # 準備が終わるまで待つ。「status: done」と出ればよい（「status: error」なら失敗）
+sudo tail -n 3 /var/log/cloud-init-output.log   # 最後に「第2段階の準備が終わりました（Node.js 26.13.0）」と出ればよい
+node -v                           # v26.13.0（自分のパソコンと同じ）
+npm -v                            # 11.20.0（自分のパソコンと同じ）
+node -e "console.log(1+2)"        # 3 と出れば、Node.js が動いている
+```
+
+- `user_data.sh.tftpl` を直して `plan` すると、`aws_instance.app must be replaced`（EC2 を作り直す）と出ます。起動したときの手順は、初めて起動したときにしか動かないためです。作り直すと EC2 の住所も変わるので、`terraform -chdir=infra output` で確かめ直します
+
 ## 5. 自分の IP アドレスが変わったとき
 
 家のネットの契約によっては、IP アドレスが変わることがあります。変わると、SSH でつながらなくなります（`Connection timed out`）。
@@ -274,6 +290,8 @@ ssh -i "$HOME\.ssh\kakeibo-ec2" ec2-user@$ip
 | `plan` で `my_ip` のエラー | `terraform.tfvars` に IP アドレスが書かれていない、または形が違う | 2-3 を行う（`/32` は付けない） |
 | `ssh` で `Connection timed out` | 自分の IP アドレスが変わった、または EC2 がまだ起動していない | 1分ほど待つ。それでもだめなら 5章 |
 | `ssh` で `Permission denied (publickey)` | 秘密鍵の場所が違う、または利用者の名前が違う | `-i "$HOME\.ssh\kakeibo-ec2"` と `ec2-user@` を確かめる |
+| `node -v` で `libatomic.so.1: cannot open shared object file` | Node.js が使う部品（libatomic）が入っていない（Amazon Linux 2023 には初めから入っていない） | `user_data.sh.tftpl` で、先に `dnf -y install libatomic` をしている（2026年11月5日に直した）。手で直すときは `sudo dnf -y install libatomic` |
+| `cloud-init status` が `status: error` | 起動したときの準備の手順のどこかで失敗した | `sudo tail -n 30 /var/log/cloud-init-output.log` で、失敗した場所を見る。手順を直したら `plan`・`apply` で EC2 を作り直す |
 | `ssh` で `REMOTE HOST IDENTIFICATION HAS CHANGED` | EC2 を作り直して、住所が前と同じになった | `ssh-keygen -R （public_ip）` で古い鍵を忘れさせてから、つなぎ直す |
 
 ## 8. 変更の記録
@@ -289,3 +307,7 @@ AWS に作ったもの・変えたもの・消したものと、確かめた結�
 | 2026年11月4日 | 4章：門番 | AWS から読み取って、入口が 22番・5173番の2つだけ・どちらも `（自分の IP）/32` であることを確認。3000番・80番には、自分のパソコンからもつながらない |
 | 2026年11月4日 | ガイドを `docs/03_手順書/07_AWSへの公開の手順書.md` から、プロジェクトの一番上の `AWSデプロイガイド.md` に移し、「0. 今の状態」を足した | — |
 | 2026年11月4日 | 6章：`terraform destroy`（EC2 を残すと1日約 0.15 ドルかかるため） | `Plan: 6 to destroy` を確かめてから消した。**EC2・門番・SSH の鍵（AWS の方）を消した**。EC2 は terminated、ディスクも消えた（`InvalidVolume.NotFound`）。残っているのは S3 バケットだけ。札で探す一覧には、消した直後もしばらく出てくることが分かった → 6章に書き足した |
+| 2026年11月5日 | 第2段階：`user_data.sh.tftpl`（Node.js 26.13.0 を公式のファイルから入れ、SHASUMS256.txt で確かめる）を作り、`plan` → `apply` | `Plan: 6 to add`（門番の入口は自分の IP だけ）。**EC2・門番・SSH の鍵を作り直した** |
+| 2026年11月5日 | 4-2：Node.js を確かめる | **失敗**：`cloud-init status` が `error`、`node -v` で `libatomic.so.1: cannot open shared object file`。Amazon Linux 2023 に libatomic が入っていないため |
+| 2026年11月5日 | `user_data.sh.tftpl` に `dnf -y install libatomic tar xz` を足して、`plan` → `apply` | `Plan: 1 to add, 1 to destroy`（EC2 だけ作り直し）。**EC2 を作り直した** |
+| 2026年11月5日 | 4-2：Node.js を確かめる | **成功**：`status: done`、`node v26.13.0`・`npm 11.20.0`（自分のパソコンと同じ）、`node -e` で計算できた、CPU は arm64。待ち受けているのは 22番だけ |

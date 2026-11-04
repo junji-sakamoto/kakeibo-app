@@ -31,6 +31,12 @@ variable "instance_type" {
   default     = "t4g.small"
 }
 
+variable "node_version" {
+  description = "EC2 に入れる Node.js の版（自分のパソコンと同じ。docs/03_手順書/00_開発環境と版の一覧.md）"
+  type        = string
+  default     = "26.13.0"
+}
+
 variable "frontend_port" {
   description = "画面側（Vite）のポート番号。自分のパソコンで動かしているときと同じ 5173 番"
   type        = number
