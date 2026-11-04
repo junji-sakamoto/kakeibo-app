@@ -12,6 +12,8 @@ export const toYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d
 // 今日・今月（今月は「2026-11」の形）
 export const today = () => toYmd(new Date());
 export const thisMonth = () => today().slice(0, 7);
+// 今年（「2026」の形の文字）
+export const thisYear = () => today().slice(0, 4);
 
 // 「2026-11」に月を足したり引いたりする
 export function addMonth(month, n) {
@@ -57,3 +59,14 @@ export function isValidDate(text) {
 // 「2026-11」の形で、2000-01〜2099-12 の範囲か
 export const isValidMonth = (text) =>
   typeof text === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(text) && text >= '2000-01' && text <= '2099-12';
+
+// 選べる年の範囲（記録の日付として登録できる範囲と同じ）
+export const MIN_YEAR = 2000;
+export const MAX_YEAR = 2099;
+
+// 「2026」の形（4けたの数字）で、2000〜2099 の範囲か
+export const isValidYear = (text) =>
+  typeof text === 'string' && /^\d{4}$/.test(text) && Number(text) >= MIN_YEAR && Number(text) <= MAX_YEAR;
+
+// 「2026-03」→「3月」
+export const formatMonthOnly = (month) => `${Number(month.slice(5, 7))}月`;

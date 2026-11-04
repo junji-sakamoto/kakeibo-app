@@ -26,6 +26,11 @@ export function isValidMonth(text) {
   return typeof text === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(text) && text >= '2000-01' && text <= '2099-12';
 }
 
+// 「2026」の形（4けたの数字）で、2000〜2099 の範囲か（API12）
+export function isValidYear(text) {
+  return typeof text === 'string' && /^\d{4}$/.test(text) && text >= '2000' && text <= '2099';
+}
+
 // パスの {番号} を数に変える。1以上の整数（データベースで扱える範囲）でなければ null
 export function parseId(text) {
   if (!/^[1-9]\d{0,9}$/.test(text)) return null;

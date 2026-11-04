@@ -50,4 +50,6 @@ export const api = {
   createCategory: (body) => request('POST', '/categories', body), // API8
   updateCategory: (id, body) => request('PUT', `/categories/${id}`, body), // API9
   deleteCategory: (id) => request('DELETE', `/categories/${id}`), // API10
+  // 集計
+  getYearSummary: (year) => request('GET', `/summary?year=${encodeURIComponent(year)}`), // API12
 };
