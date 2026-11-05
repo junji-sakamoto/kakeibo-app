@@ -28,18 +28,17 @@
 
 | もの | 名前 | 作り方 | 状態 | 料金（1日） |
 |---|---|---|---|---|
-| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・起動したときに Node.js 26.13.0 と mysql 8.4.9 を自動で入れる） | Terraform | **🟢 動いている**（2026年11月5日） | 約 0.15 ドル（公開の住所とディスク。EC2 本体は 2026年12月31日まで無料トライアル） |
-| 門番（EC2） | `kakeibo-app`（入口：22番・5173番を自分の IP からだけ） | Terraform | 🟢 あり | 0 ドル |
-| SSH の鍵（AWS に登録した公開鍵） | `kakeibo-ec2` | Terraform | 🟢 あり | 0 ドル |
-| **RDS** | `kakeibo-db`（MySQL 8.4.11・db.t4g.micro・ディスク 20GB 暗号化・インターネットからはつなげない・バックアップ1日分・時刻は Asia/Tokyo） | Terraform | **🟢 動いている**（2026年11月5日） | 約 0.70 ドル（本体 0.60・ディスク 0.09） |
-| 門番（RDS） | `kakeibo-db`（入口：3306番を EC2 の門番からだけ） | Terraform | 🟢 あり | 0 ドル |
-| RDS の設定・サブネットのまとまり | `kakeibo-mysql84`・`kakeibo-db` | Terraform | 🟢 あり | 0 ドル |
-| 管理者のパスワード | SSM パラメータストア `/kakeibo/db/admin-password`（暗号化） | Terraform | 🟢 あり | 0 ドル |
+| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・起動したときに Node.js 26.13.0 と mysql 8.4.9 を自動で入れる） | Terraform | **⚪ 消した**（2026年11月5日。料金がかからないようにするため） | 0 ドル |
+| 門番（EC2） | `kakeibo-app`（入口：22番・5173番を自分の IP からだけ） | Terraform | ⚪ 消した | 0 ドル |
+| SSH の鍵（AWS に登録した公開鍵） | `kakeibo-ec2` | Terraform | ⚪ 消した（パソコンの中の鍵 `~/.ssh/kakeibo-ec2` は残している） | 0 ドル |
+| RDS | `kakeibo-db`（MySQL 8.4.11・db.t4g.micro・ディスク 20GB 暗号化・インターネットからはつなげない・バックアップ1日分・時刻は Asia/Tokyo） | Terraform | **⚪ 消した**（2026年11月5日。控えも残っていない） | 0 ドル |
+| 門番（RDS） | `kakeibo-db`（入口：3306番を EC2 の門番からだけ） | Terraform | ⚪ 消した | 0 ドル |
+| RDS の設定・サブネットのまとまり | `kakeibo-mysql84`・`kakeibo-db` | Terraform | ⚪ 消した | 0 ドル |
+| 管理者のパスワード | SSM パラメータストア `/kakeibo/db/admin-password`（暗号化） | Terraform | ⚪ 消した（次に作るときは、新しいパスワードがその場で作られる） | 0 ドル |
 | S3 バケット（Terraform の記録） | `kakeibo-tfstate-（アカウントID）` | AWS CLI（2-2） | 🟢 あり（次の段階でも使うので残す） | ほぼ 0 ドル |
 
-- **今の料金の合計：1日約 0.85 ドル（約 130 円）**。無料プランのクレジットから引かれ、自分のお金は払いません
-- RDS の中には、まだテーブルもデータもありません（データベース `kakeibo` だけ）。テーブルとお試しデータは第4段階で作ります
-- 確かめのために SSH で手で入れた nginx（welcome 画面）は、第2段階のあと EC2 と一緒に消えました。Terraform には書いていないので、作り直しても入りません
+- **今の料金の合計：ほぼ 0 ドル**（S3 バケットの小さなファイルだけ）
+- 次に作るときは、3章の `plan` → `apply` で、第3段階までの12個（EC2・RDS など）がそろいます（RDS は10分ほど）。Node.js と mysql コマンドも、EC2 が起動したときに自動で入ります
 - EC2 を消したあと、次に作るときは、2章の準備（SSH の鍵・S3 バケット・`terraform.tfvars`・`init`）はもう済んでいるので、**3章の `plan` から**始めます。自分の IP アドレスが変わっていたら、先に 2-3 で `my_ip` を直します
 
 > **EC2 を残すときの料金**：EC2 を残しておくと、EC2 本体が無料（2026年12月31日までの無料トライアル）でも、公開の住所（1日約 0.12 ドル）とディスク（1日約 0.03 ドル）の料金がかかります。止めても、ディスクの料金はかかります。そのため、使わないあいだは消しておき、使うときに作り直します。
@@ -371,3 +370,5 @@ AWS に作ったもの・変えたもの・消したものと、確かめた結�
 | 2026年11月5日 | 4-3：EC2 の準備を確かめる | **失敗**：`status: error`、`mysql: command not found`。MySQL の置き場所の `$releasever` が「2023.…」になって 404 だった |
 | 2026年11月5日 | `user_data.sh.tftpl` で `$releasever` を `9` に置きかえて、`plan` → `apply` | `Plan: 1 to add, 1 to destroy`（EC2 だけ作り直し、RDS はそのまま）。**EC2 を作り直した** |
 | 2026年11月5日 | 4-3：EC2 から RDS につなぐ | **成功**：`status: done`、`mysql 8.4.9`。EC2 から RDS につながり、MySQL 8.4.11・データベース `kakeibo`・利用者 `kakeibo_admin`・時刻 Asia/Tokyo・utf8mb4・TLSv1.3。RDS は `PubliclyAccessible: false`、RDS の住所は VPC の中だけの住所（172.31.…）、門番は EC2 の門番からだけ、自分のパソコンからは 3306番につながらない |
+| 2026年11月5日 | 坂本さんの希望で、EC2 以外から RDS につながらないかを確かめ直した | RDS に付いている門番は `kakeibo-db` だけ、その入口は 3306番を `kakeibo-app` の門番からだけ（IPv4・IPv6・住所の一覧の入口はなし）。`kakeibo-app` が付いているのは今の EC2 の1台だけ。実際に、パソコンからは 3306番につながらず、EC2 からはつながった |
+| 2026年11月5日 | 6章：`terraform destroy`（一旦終わりにするため、料金がかからない状態にする） | `Plan: 12 to destroy` を確かめてから消した（RDS は2分）。**EC2・RDS・門番・パスワードなど12個を消した**。RDS は見つからない（DBInstanceNotFound）、RDS の控えも残っていない。残っているのは S3 バケットだけ |
