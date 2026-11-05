@@ -37,6 +37,30 @@ variable "node_version" {
   default     = "26.13.0"
 }
 
+variable "mysql_client_version" {
+  description = "EC2 に入れる MySQL 公式の mysql コマンドの版（第3段階。MySQL 公式の el9 aarch64 の置き場所にある一番新しい 8.4 系）"
+  type        = string
+  default     = "8.4.9"
+}
+
+variable "db_engine_version" {
+  description = "RDS の MySQL の版（RDS で使える一番新しい 8.4 系）"
+  type        = string
+  default     = "8.4.11"
+}
+
+variable "db_instance_class" {
+  description = "RDS の大きさ（一番小さいもの）"
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "db_backup_retention_days" {
+  description = "RDS の自動バックアップを残す日数（第3段階は確かめるだけなので 1日。非機能要件の 7日は、講師に見てもらうときに決める）"
+  type        = number
+  default     = 1
+}
+
 variable "frontend_port" {
   description = "画面側（Vite）のポート番号。自分のパソコンで動かしているときと同じ 5173 番"
   type        = number

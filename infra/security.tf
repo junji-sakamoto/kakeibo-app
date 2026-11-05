@@ -37,10 +37,34 @@ resource "aws_vpc_security_group_ingress_rule" "frontend_from_my_ip" {
   cidr_ipv4         = "${var.my_ip}/32"
 }
 
-# EC2 から外への通信（OS の更新や、Node.js・部品のダウンロード）は許す
+# EC2 から外への通信（OS の更新や、Node.js・部品のダウンロード、RDS への接続）は許す
 resource "aws_vpc_security_group_egress_rule" "app_all" {
   security_group_id = aws_security_group.app.id
   description       = "Outbound"
   ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
+}
+
+# ------------------------------------------------------------
+# RDS の門番（第3段階）
+# 入ってよいのは、EC2（kakeibo-app の門番が付いたもの）からの 3306番（MySQL）だけ。
+# 自分のパソコンからも、インターネットからも、直接はつなげない
+# ------------------------------------------------------------
+resource "aws_security_group" "db" {
+  name        = "kakeibo-db"
+  description = "kakeibo RDS"
+  vpc_id      = data.aws_vpc.default.id
+
+  tags = {
+    Name = "kakeibo-db"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "mysql_from_app" {
+  security_group_id            = aws_security_group.db.id
+  description                  = "MySQL from EC2 only"
+  ip_protocol                  = "tcp"
+  from_port                    = 3306
+  to_port                      = 3306
+  referenced_security_group_id = aws_security_group.app.id
 }

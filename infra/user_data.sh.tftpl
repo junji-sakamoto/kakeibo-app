@@ -1,6 +1,7 @@
 #!/bin/bash
 # ============================================================
-# EC2 が初めて起動したときに、1回だけ動く準備の手順（第2段階：Node.js を入れる）
+# EC2 が初めて起動したときに、1回だけ動く準備の手順
+#   第2段階：Node.js を入れる／第3段階：mysql コマンドを入れる
 # Terraform（compute.tf）が、ドル記号と波かっこで囲んだ部分に値を入れてから EC2 に渡す
 # 進み具合は、EC2 に SSH で入って sudo tail -n 20 /var/log/cloud-init-output.log で見られる
 # ============================================================
@@ -32,3 +33,18 @@ rm -f "/tmp/$NODE_DIST.tar.xz" /tmp/SHASUMS256.txt
 node -v
 npm -v
 echo "第2段階の準備が終わりました（Node.js $NODE_VERSION）"
+
+# ------------------------------------------------------------
+# 第3段階：MySQL 公式の mysql コマンドを入れる（EC2 から RDS につながるかを確かめるため）
+#   - MySQL 公式の部品の置き場所（repo.mysql.com）を登録してから、mysql コマンドだけを入れる
+#   - データベースそのもの（MySQL のサーバー）は入れない（データベースは RDS を使う）
+# ------------------------------------------------------------
+#   - MySQL の置き場所は、Linux の種類の番号（el/9 など）でフォルダが分かれている。Amazon Linux 2023 では
+#     その番号（$releasever）が「2023.…」になり、ないフォルダを探して 404 になるので、9 に置きかえる
+#     （2026年11月5日に実際に起きた）
+MYSQL_CLIENT_VERSION="${mysql_client_version}"
+dnf -y install https://repo.mysql.com/mysql84-community-release-el9-2.noarch.rpm
+sed -i 's/\$releasever/9/g' /etc/yum.repos.d/mysql-community*.repo
+dnf -y install "mysql-community-client-$MYSQL_CLIENT_VERSION"
+mysql --version
+echo "第3段階の準備が終わりました（mysql $MYSQL_CLIENT_VERSION）"

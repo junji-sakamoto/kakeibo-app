@@ -17,6 +17,21 @@ output "ssh_command" {
   value       = "ssh -i ~/.ssh/kakeibo-ec2 ec2-user@${aws_instance.app.public_ip}"
 }
 
+output "db_endpoint" {
+  description = "RDS の住所（EC2 の中からだけつなげる）"
+  value       = aws_db_instance.main.address
+}
+
+output "db_admin_username" {
+  description = "RDS の管理者の名前"
+  value       = aws_db_instance.main.username
+}
+
+output "db_admin_password_parameter" {
+  description = "RDS の管理者のパスワードが置いてある場所（SSM パラメータストア）"
+  value       = aws_ssm_parameter.db_admin_password.name
+}
+
 output "frontend_url" {
   description = "画面側を EC2 に入れたあとに開くアドレス（自分のパソコンからだけ開ける）"
   value       = "http://${aws_instance.app.public_ip}:${var.frontend_port}/"

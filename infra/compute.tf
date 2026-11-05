@@ -4,6 +4,7 @@
 #
 # 第1段階：EC2 を作って SSH で入れることを確かめた。
 # 第2段階：EC2 が初めて起動したときに、Node.js を自動で入れる（user_data.sh.tftpl）。
+# 第3段階：同じく、RDS につながるかを確かめるための mysql コマンドも入れる。
 # ほかのもの（アプリなど）は、あとの段階で入れる（一気に作らず、1つずつ確かめるため）
 # ============================================================
 
@@ -48,7 +49,8 @@ resource "aws_instance" "app" {
   # 初めて起動したときに、Node.js を入れる（第2段階）。
   # Windows で取り出すと改行が CRLF になることがあるので、LF にそろえて渡す
   user_data = replace(templatefile("${path.module}/user_data.sh.tftpl", {
-    node_version = var.node_version
+    node_version         = var.node_version
+    mysql_client_version = var.mysql_client_version
   }), "\r\n", "\n")
 
   # user_data は初めて起動したときにしか動かないので、中身を変えたら EC2 を作り直す
