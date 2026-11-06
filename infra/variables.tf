@@ -56,9 +56,9 @@ variable "db_instance_class" {
 }
 
 variable "db_backup_retention_days" {
-  description = "RDS の自動バックアップを残す日数（第3段階は確かめるだけなので 1日。非機能要件の 7日は、講師に見てもらうときに決める）"
+  description = "RDS の自動バックアップを残す日数（非機能要件の 7日。第3〜6段階は確かめるだけなので 1日だった）"
   type        = number
-  default     = 1
+  default     = 7
 }
 
 variable "alert_email" {

@@ -6,6 +6,8 @@
 使い方（プロジェクトの一番上のフォルダで、PowerShell で実行する）：
   .\infra\deploy.ps1                 … GitHub の develop を載せる
   .\infra\deploy.ps1 -Branch 名前    … ほかのブランチを載せる（確かめたいとき）
+  .\infra\deploy.ps1 -ResetData      … 載せるのと一緒に、お試しデータを最初の状態に戻す
+                                        （講師に確認をお願いする前と、データがおかしくなったとき。今のデータは消える）
 
 前もって必要なこと：
   - aws login --profile kakeibo でログインし、$env:AWS_PROFILE = "kakeibo" を指定している
@@ -18,6 +20,7 @@
   2. GitHub からアプリを取ってくる（初めては git clone、2回目からは git pull）
   3. 処理側の部品を入れる（npm ci --omit=dev）
   4. RDS に、アプリ用の利用者とテーブル・お試しデータを作る（ないときだけ。データはそのまま残す）
+     -ResetData のときは、記録とカテゴリを全部消して、お試しデータ（カテゴリ17件・記録28件）を入れ直す
   5. 処理側の設定（backend/.env）を置き、systemd で起動し直す
   6. 画面側の部品を入れて組み立て（npm ci・npm run build）、nginx が配る場所（/var/www/kakeibo）に置く
   7. 自分のパソコンから、CloudFront の https のアドレスで、画面と /api/health を確かめる
@@ -25,7 +28,8 @@
 ============================================================
 #>
 param(
-  [string]$Branch = 'develop'
+  [string]$Branch = 'develop',
+  [switch]$ResetData
 )
 
 $ErrorActionPreference = 'Stop'
@@ -48,6 +52,12 @@ $appParam = terraform -chdir=infra output -raw db_app_password_parameter
 if ($LASTEXITCODE -ne 0 -or -not $ip) { throw 'つなぎ先が読めませんでした。terraform -chdir=infra apply が終わっているか確かめてください' }
 Write-Host "EC2：ec2-user@$ip"
 Write-Host "載せるブランチ：$Branch"
+if ($ResetData) {
+  Write-Host 'お試しデータを最初の状態に戻します（今の記録とカテゴリは消えます）' -ForegroundColor Yellow
+  $answer = Read-Host '続けるときは yes と入力してください'
+  if ($answer -ne 'yes') { throw '止めました（何も変えていません）' }
+}
+$reset = if ($ResetData) { '1' } else { '0' }
 
 # パスワードを SSM パラメータストアから読む（記号の意味で困らないように base64 にして渡す）
 $adminPw = aws ssm get-parameter --name $adminParam --with-decryption --query Parameter.Value --output text
@@ -97,6 +107,12 @@ if [ "`$(`$M -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_s
   for f in ~/kakeibo-app/database/sql/01_create_tables.sql ~/kakeibo-app/database/sql/02_insert_categories.sql ~/kakeibo-app/database/sql/03_insert_sample_records.sql; do
     `$M < "`$f"; echo "実行しました：`$(basename "`$f")"
   done
+elif [ "$reset" = "1" ]; then
+  # お試しデータを最初の状態に戻す（自分のパソコンの手順と同じ SQL を使う：docs/03_手順書/01_データベースの手順書.md の 6）
+  for f in ~/kakeibo-app/database/reset/reset_data.sql ~/kakeibo-app/database/sql/02_insert_categories.sql ~/kakeibo-app/database/sql/03_insert_sample_records.sql; do
+    `$M < "`$f"; echo "実行しました：`$(basename "`$f")"
+  done
+  echo 'お試しデータを最初の状態に戻しました'
 else
   echo 'テーブルはもうあるので、作りませんでした（データはそのまま）'
 fi
