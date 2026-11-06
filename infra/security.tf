@@ -4,7 +4,8 @@
 #
 # 入ってよいのは、自分のパソコン（my_ip）からの次の2つだけ。どこからでも入れる設定（0.0.0.0/0）にはしない
 #   - 22番：SSH（EC2 の管理）
-#   - 5173番：画面側（Vite）。画面側と処理側は同じ EC2 に入れ、処理側（3000番）へは Vite が EC2 の中で中継するので、3000番は開けない
+#   - 80番：画面（nginx。第5段階から。第4段階までは Vite の 5173番だった）。画面側と処理側は同じ EC2 に入れ、
+#           処理側（3000番）へは nginx が EC2 の中で中継するので、3000番は開けない
 # ============================================================
 
 resource "aws_security_group" "app" {
@@ -27,13 +28,13 @@ resource "aws_vpc_security_group_ingress_rule" "ssh_from_my_ip" {
   cidr_ipv4         = "${var.my_ip}/32"
 }
 
-# 5173番（画面側の Vite）：自分のパソコンからだけ
-resource "aws_vpc_security_group_ingress_rule" "frontend_from_my_ip" {
+# 80番（画面。nginx）：自分のパソコンからだけ
+resource "aws_vpc_security_group_ingress_rule" "web_from_my_ip" {
   security_group_id = aws_security_group.app.id
-  description       = "Frontend (Vite) from my PC"
+  description       = "Web (nginx) from my PC"
   ip_protocol       = "tcp"
-  from_port         = var.frontend_port
-  to_port           = var.frontend_port
+  from_port         = var.web_port
+  to_port           = var.web_port
   cidr_ipv4         = "${var.my_ip}/32"
 }
 

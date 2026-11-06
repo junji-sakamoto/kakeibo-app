@@ -61,8 +61,8 @@ variable "db_backup_retention_days" {
   default     = 1
 }
 
-variable "frontend_port" {
-  description = "画面側（Vite）のポート番号。自分のパソコンで動かしているときと同じ 5173 番"
+variable "web_port" {
+  description = "画面を開くポート番号（第5段階から nginx の 80番。第4段階までは Vite の 5173番だった）"
   type        = number
-  default     = 5173
+  default     = 80
 }

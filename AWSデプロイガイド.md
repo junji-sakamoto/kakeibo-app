@@ -13,7 +13,7 @@
 
 ## 0. 今の状態
 
-**最後に更新した日：2026年11月5日**
+**最後に更新した日：2026年11月6日**
 
 ### 0-1. 進み具合
 
@@ -23,14 +23,14 @@
 | 第2段階 | EC2 に Node.js を入れる（Terraform の `user_data` で、起動したときに自動で入れる） | ✅ 完了（2026年11月5日） |
 | 第3段階 | RDS を作り、EC2 からつなぐ（EC2 には確かめ用の `mysql` コマンドも自動で入れる） | ✅ 完了（2026年11月5日） |
 | 第4段階 | アプリを載せて、自分のパソコンのブラウザで確かめる（GitHub の `develop` を取ってきて、手で起動する） | ✅ 画面が出ることを確認（2026年11月6日）。直したアプリの載せ替え（`git pull`）も確認。確かめたあと、全部消した |
-| **第5段階** | **フロントエンド・バックエンドを本番らしい形でデプロイする（nginx・systemd・80番）** | **⬜ 計画を決めた（2026年11月6日。[構成設計書](docs/02_設計/07_構成設計書.md) の 4-8）** |
+| **第5段階** | **フロントエンド・バックエンドを本番らしい形でデプロイする（nginx・systemd・80番、`deploy.ps1`）** | **✅ 完了（2026年11月6日。4-5、[構成設計書](docs/02_設計/07_構成設計書.md) の 4-8）**。何もない状態からも `deploy.ps1` 1行で載せられることを確認。確かめたあと、全部消した |
 
 ### 0-2. 今 AWS にあるもの（家計簿アプリのもの）
 
 | もの | 名前 | 作り方 | 状態 | 料金（1日） |
 |---|---|---|---|---|
-| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・起動したときに Node.js 26.13.0・mysql 8.4.9・git を自動で入れる） | Terraform | **⚪ 消した**（2026年11月6日。料金がかからないようにするため） | 0 ドル |
-| 門番（EC2） | `kakeibo-app`（入口：22番・5173番を自分の IP からだけ） | Terraform | ⚪ 消した | 0 ドル |
+| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・起動したときに Node.js 26.13.0・mysql 8.4.9・git・nginx を自動で入れ、処理側を systemd に登録する） | Terraform | **⚪ 消した**（2026年11月6日。第5段階を確かめたあと、料金がかからないようにするため） | 0 ドル |
+| 門番（EC2） | `kakeibo-app`（入口：22番・80番を自分の IP からだけ） | Terraform | ⚪ 消した | 0 ドル |
 | SSH の鍵（AWS に登録した公開鍵） | `kakeibo-ec2` | Terraform | ⚪ 消した（パソコンの中の鍵 `~/.ssh/kakeibo-ec2` は残している） | 0 ドル |
 | RDS | `kakeibo-db`（MySQL 8.4.11・db.t4g.micro・ディスク 20GB 暗号化・インターネットからはつなげない・バックアップ1日分・時刻は Asia/Tokyo） | Terraform | **⚪ 消した**（2026年11月6日。データも控えも残っていない） | 0 ドル |
 | 門番（RDS） | `kakeibo-db`（入口：3306番を EC2 の門番からだけ） | Terraform | ⚪ 消した | 0 ドル |
@@ -39,7 +39,7 @@
 | S3 バケット（Terraform の記録） | `kakeibo-tfstate-（アカウントID）` | AWS CLI（2-2） | 🟢 あり（次に作るときも使うので残す） | ほぼ 0 ドル |
 
 - **今の料金の合計：ほぼ 0 ドル**（S3 バケットの小さなファイルだけ）
-- 次に作るときは、3章の `plan` → `apply`（13個。RDS は10分ほど）のあと、4-4 の 1.〜5. でアプリを載せます。RDS は作り直すと空になるので、4-4 の 2.（アプリ用の利用者・テーブル・お試しデータ）と 3.（`.env`）も、もう一度行います
+- 次に作るときは、3章の `plan` → `apply`（13個。RDS は10分ほど）のあと、**4-5 の `.\infra\deploy.ps1` の1行**でアプリを載せます（RDS は作り直すと空になりますが、利用者・テーブル・お試しデータも `deploy.ps1` が作ります）
 - EC2 を消したあと、次に作るときは、2章の準備（SSH の鍵・S3 バケット・`terraform.tfvars`・`init`）はもう済んでいるので、**3章の `plan` から**始めます。自分の IP アドレスが変わっていたら、先に 2-3 で `my_ip` を直します
 
 > **EC2 を残すときの料金**：EC2 を残しておくと、EC2 本体が無料（2026年12月31日までの無料トライアル）でも、公開の住所（1日約 0.12 ドル）とディスク（1日約 0.03 ドル）の料金がかかります。止めても、ディスクの料金はかかります。そのため、使わないあいだは消しておき、使うときに作り直します。
@@ -67,7 +67,7 @@ aws ec2 describe-instances --filters Name=tag:Project,Values=kakeibo --query "Re
 |---|---|---|---|
 | 2 | はじめの1回だけの準備（SSH の鍵・記録の置き場所・設定の値） | S3 バケットを1つ作る | ほぼ 0 円 |
 | 3 | Terraform で EC2（第3段階からは RDS も）を作る（`plan` → `apply`） | **変わる** | **かかり始める**（EC2 だけなら1日約 0.15 ドル、RDS も入れると約 0.85 ドル。クレジットから引かれる） |
-| 4 | EC2 に SSH で入って確かめる（4-2：第2段階の Node.js、4-3：第3段階の RDS、4-4：第4段階のアプリ） | EC2・RDS の中が変わる（4-4） | — |
+| 4 | EC2 に SSH で入って確かめる（4-2：Node.js、4-3：RDS、4-4：第4段階のアプリ（仮の形）、**4-5：第5段階のアプリ（`deploy.ps1`）**） | EC2・RDS の中が変わる（4-4・4-5） | — |
 | 5 | 自分の IP アドレスが変わったとき | 門番を変える | — |
 | 6 | 片付け（確かめが終わったら） | **消える** | 止まる |
 | 7 | 困ったとき | — | — |
@@ -80,10 +80,11 @@ infra/
 ├── versions.tf                ← Terraform と AWS プロバイダーの版、記録の置き場所（S3）、札
 ├── variables.tf               ← 外から渡す値（自分の IP アドレス、SSH の公開鍵、EC2 の大きさ、Node.js・mysql・RDS の版、画面側のポート など）
 ├── network.tf                 ← デフォルト VPC とサブネットを読む（作らない）
-├── security.tf                ← 門番（EC2：22番・5173番を自分の IP からだけ／RDS：3306番を EC2 からだけ）
+├── security.tf                ← 門番（EC2：22番・80番を自分の IP からだけ／RDS：3306番を EC2 からだけ）
 ├── compute.tf                 ← EC2・SSH の公開鍵
 ├── user_data.sh.tftpl         ← EC2 が初めて起動したときに動く準備の手順（第2段階：Node.js／第3段階：mysql コマンド／第4段階：git）
 ├── database.tf                ← RDS・RDS の設定・管理者とアプリ用のパスワード（第3・4段階）
+├── deploy.ps1                 ← アプリ（フロントエンド・バックエンド）を EC2 に載せるスクリプト（第5段階。4-5）
 ├── outputs.tf                 ← 作ったあとに表示する値
 ├── terraform.tfvars.example   ← 外から渡す値の見本（GitHub に上げる）
 ├── terraform.tfvars           ← 外から渡す本物の値（GitHub に上げない）
@@ -197,7 +198,7 @@ Remove-Item infra\kakeibo.tfplan
   |---|---|
   | `public_ip` | EC2 の公開の住所（止めて動かすと変わる） |
   | `ssh_command` | EC2 に SSH で入るコマンド |
-  | `frontend_url` | 第4段階で画面側を入れたあとに開くアドレス（今はまだ開けない） |
+  | `app_url` | アプリを開くアドレス（`http://（EC2 の住所）/`。4-5 でアプリを載せたあとに開ける） |
   | `instance_id` | EC2 の番号 |
 
 - 作ったら、「0. 今の状態」と「8. 変更の記録」を書き換えます
@@ -227,7 +228,7 @@ ssh -i "$HOME\.ssh\kakeibo-ec2" ec2-user@$ip
   aws ec2 describe-security-groups --filters Name=group-name,Values=kakeibo-app --query "SecurityGroups[].IpPermissions[].[FromPort,IpRanges[].CidrIp]" --output json
   ```
 
-  `22` と `5173` の2つだけが、自分の IP アドレス（`…/32`）で出れば大丈夫です
+  `22` と `80` の2つだけが、自分の IP アドレス（`…/32`）で出れば大丈夫です（第4段階までは `80` のかわりに `5173`）
 
 ### 4-2. Node.js が入ったか確かめる（第2段階）
 
@@ -286,7 +287,9 @@ RDS は作るのに10分ほどかかります（`apply` が終わるまで待ち
    aws ec2 describe-security-groups --filters Name=group-name,Values=kakeibo-db --query "SecurityGroups[].IpPermissions[].{port:FromPort,from_ip:IpRanges[].CidrIp,from_group:UserIdGroupPairs[].GroupId}" --output json
    ```
 
-### 4-4. アプリを載せて、ブラウザで確かめる（第4段階）
+### 4-4. アプリを載せて、ブラウザで確かめる（第4段階：仮の形）
+
+> **この節は第4段階（開発用の Vite・手で起動・5173番）の記録です。今は 4-5 の形（nginx・systemd・80番、`deploy.ps1`）で載せます。** EC2 の門番も 80番に変えたので、この節の 5173番の手順はそのままでは使えません。
 
 画面側と処理側を、同じ EC2 の中で動かします。アプリのファイルは **GitHub の `develop` ブランチから取ってきて**、**手で起動**します（2026年11月6日に坂本さんが選んだ形）。
 
@@ -396,6 +399,64 @@ flowchart LR
 
    EC2 を `terraform destroy` で消すときは、止めなくても一緒に消えます
 
+### 4-5. アプリを本番らしい形で載せる（第5段階：`deploy.ps1`）
+
+フロントエンドとバックエンドを、それぞれ本番らしい形で載せます（[構成設計書](docs/02_設計/07_構成設計書.md) の 4-8）。
+
+```mermaid
+flowchart LR
+  pc["自分のパソコンのブラウザ"] -->|"http（80番）<br/>自分の IP からだけ"| nginx
+  subgraph ec2["EC2"]
+    nginx["nginx（80番）<br/>組み立てた画面（/var/www/kakeibo）を配る"] -->|"/api を中継"| api["処理側：systemd の kakeibo-backend<br/>127.0.0.1:3000"]
+  end
+  api -->|"3306番（TLS）"| rds[("RDS")]
+```
+
+| | 動かし方 | 準備するところ |
+|---|---|---|
+| フロントエンド | `npm run build` で組み立てたファイルを、**nginx** が 80番で配る。`/api` は nginx が処理側に中継する。ないアドレス（`/categories` など）でも `index.html` を返す | nginx・nginx の設定は、EC2 が起動したときに自動で入る（`infra/user_data.sh.tftpl`） |
+| バックエンド | **systemd** の `kakeibo-backend` として動かす。EC2 が起動したら自動で動き、止まったら3秒後に自動で起動し直す | systemd への登録は、EC2 が起動したときに自動で行う（`.env` が置かれるまでは動かない） |
+
+**載せ方：3章で `apply` したあと、次の1行を打ちます**（初めてでも、2回目からでも同じ）
+
+```powershell
+.\infra\deploy.ps1
+```
+
+`deploy.ps1` は、次のことを順番に行います。何度動かしてもよく、すでにあるもの（RDS の利用者・テーブル・データ）は作り直しません。
+
+| 順番 | すること |
+|---|---|
+| 1 | EC2 の起動の準備（Node.js・mysql・git・nginx・systemd の登録）が終わるのを待つ |
+| 2 | GitHub の `develop` を取ってくる（初めては `git clone`、2回目からは取りこみ直す）。ほかのブランチは `-Branch 名前` |
+| 3 | 処理側の部品を入れる（`npm ci --omit=dev`） |
+| 4 | RDS に、アプリ用の利用者 `kakeibo_app`（SELECT・INSERT・UPDATE・DELETE だけ）とテーブル・お試しデータを作る（**ないときだけ**） |
+| 5 | 処理側の設定（`backend/.env`、`ec2-user` だけが読める）を書き、`kakeibo-backend` を起動し直す |
+| 6 | 画面側の部品を入れて組み立て（`npm ci`・`npm run build`）、`/var/www/kakeibo` に置く |
+| 7 | 自分のパソコンから、画面と `/api/health` を確かめる |
+
+- パスワードは、自分のパソコンで SSM パラメータストアから読み、画面にもファイルにも出さずに、SSH の中だけで EC2 に渡します
+- **載せられるのは GitHub に上げたものだけ**です（EC2 は GitHub から取ってきます）。直したら、PR をマージしてから `deploy.ps1` を動かします
+- 最後に `載せ終わりました：http://（EC2 の住所）/` と出れば成功です。ブラウザでそのアドレスを開きます
+
+**確かめること**
+
+```powershell
+$ip = terraform -chdir=infra output -raw public_ip
+# 画面と、再読み込みしたときの画面（どれも 200 ならよい）
+foreach ($p in '/', '/categories', '/yearly?year=2026', '/records/new') { "$p : $((Invoke-WebRequest "http://$ip$p" -UseBasicParsing).StatusCode)" }
+# nginx を通した API
+Invoke-RestMethod "http://$ip/api/health"
+```
+
+EC2 の中では、次のように確かめます（SSH で入ってから）。
+
+```bash
+systemctl is-active nginx kakeibo-backend            # active が2つ出ればよい
+sudo journalctl -u kakeibo-backend -n 20 --no-pager  # 処理側の記録（エラーが出ていないか）
+sudo ss -tlnp | awk '/LISTEN/ {print $4}'            # 0.0.0.0:80 と 127.0.0.1:3000 があればよい
+```
+
 ## 5. 自分の IP アドレスが変わったとき
 
 家のネットの契約によっては、IP アドレスが変わることがあります。変わると、SSH でつながらなくなります（`Connection timed out`）。
@@ -455,7 +516,11 @@ flowchart LR
 | `mysql: command not found`（起動の記録に `404 for https://repo.mysql.com/yum/…/el/2023.…/`） | MySQL の置き場所のフォルダの番号（`$releasever`）が、Amazon Linux 2023 では「2023.…」になり、ないフォルダを探している | `user_data.sh.tftpl` で、置き場所の登録の `$releasever` を `9` に置きかえている（2026年11月5日に直した） |
 | RDS につなぐと `Access denied` | パスワードが違う、または利用者の名前が違う | 4-3 の 2. のとおり、SSM パラメータストアから読んだパスワードと `db_admin_username` を使う |
 | RDS につなぐと止まったまま（`Can't connect to MySQL server`） | RDS がまだ作り終わっていない、または EC2 以外から（自分のパソコンから）つなごうとしている | `apply` が終わったか確かめる。RDS には EC2 からだけつなげる（そういう決まり） |
-| パソコンのブラウザで `http://（EC2 の住所）:5173/` が開けない | 画面側が起動していない、`--host 0.0.0.0` を付け忘れた（EC2 の中だけで待ち受けている）、または IP アドレスが変わった | EC2 で `sudo ss -tlnp` を見て、`0.0.0.0:5173` があるか確かめる。なければ 4-4 の 4. で起動し直す。IP が変わったなら 5章 |
+| パソコンのブラウザで `http://（EC2 の住所）/` が開けない（第5段階） | nginx が動いていない、または IP アドレスが変わった | EC2 で `systemctl is-active nginx`。IP が変わったなら 5章 |
+| 「準備中です。アプリの画面はまだ置かれていません。」と出る | まだ `deploy.ps1` を動かしていない | 4-5 の `.\infra\deploy.ps1` を動かす |
+| 画面は出るが「サーバーとの通信に失敗しました」（第5段階） | 処理側（`kakeibo-backend`）が止まっている、または RDS につながっていない | EC2 で `systemctl status kakeibo-backend` と `sudo journalctl -u kakeibo-backend -n 30` を見る。`deploy.ps1` をもう一度動かす |
+| `deploy.ps1` が「EC2 の中の手順が失敗しました」で止まる | 1〜6 のどこかで失敗した | 表示された「=== 〇. …」の最後の段のところを見る。直したら、もう一度動かす（何度動かしてもよい） |
+| パソコンのブラウザで `http://（EC2 の住所）:5173/` が開けない（第4段階） | 画面側が起動していない、`--host 0.0.0.0` を付け忘れた（EC2 の中だけで待ち受けている）、または IP アドレスが変わった | EC2 で `sudo ss -tlnp` を見て、`0.0.0.0:5173` があるか確かめる。なければ 4-4 の 4. で起動し直す。IP が変わったなら 5章 |
 | 画面は出るが「サーバーとの通信に失敗しました」（S01） | 処理側が止まっている、または RDS につながっていない | EC2 で `tail -n 20 ~/backend.log` と `curl -s http://127.0.0.1:3000/api/health` を見る。`.env` の値（4-4 の 3.）を確かめる |
 | `pkill` を打ったら SSH が切れた（終了コード 255） | `pkill -f vite` が、SSH で送ったコマンドの文字にも当たって、SSH ごと止めた | 4-4 の 6. のとおり `pkill -f "[n]ode .*vite"` と書く。切れたあとは、SSH で入り直して、画面側を起動し直す |
 | `CREATE USER` で `Operation CREATE USER failed` | アプリ用の利用者がもうある（4-4 の 2. を2回行った） | 1回目でできているので、そのままでよい |
@@ -494,3 +559,10 @@ AWS に作ったもの・変えたもの・消したものと、確かめた結�
 | 2026年11月6日 | 4-4 の 5.：自分のパソコンから | 画面（タイトル「家計簿」）・API が届いた。2026年10月は記録13件・収入 253,000円・支出 95,400円・差額 157,600円、2026年の合計は 503,000円・200,000円・303,000円（自分のパソコンで動かしたときと同じ）。記録一覧・年間・カテゴリの画面を写真で確認。パソコンから EC2 の 3000番・3306番・80番にはつながらない |
 | 2026年11月6日 | 4-4 の 6.：メニューの名前の変更（PR #18）を develop にマージしたあと、EC2 で `git pull --ff-only` して画面側を起動し直した | `develop` が `c3b0dbe`（PR #18 のマージ）になった。1回目は `pkill -f vite` で SSH ごと止まった → `[n]ode .*vite` に直してガイドに書いた。起動し直したあと、パソコンの幅とスマートフォンの幅（360）で「月ごとの記録」「年間の集計」「カテゴリの設定」が出ることを確認 |
 | 2026年11月6日 | 6章：`terraform destroy`（料金がかからない状態にする） | `Plan: 13 to destroy` を確かめてから消した（RDS は1分51秒）。**EC2・RDS・門番・パスワード2つなど13個を消した**。RDS は見つからない（DBInstanceNotFound）、控えも残っていない。残っているのは S3 バケットだけ |
+| 2026年11月6日 | 第5段階 5-2：門番の入口を 5173番から 80番に、起動の手順に nginx（設定）と systemd の登録を足して、`plan` → `apply` | `Plan: 13 to add`（入口は 22番・80番を自分の IP だけ）。**13個を作った**。起動の準備は第2〜5段階とも終わり、nginx は動き、`kakeibo-backend` は登録済み（`.env` がないので動かない）。80番で「準備中」の画面 |
+| 2026年11月6日 | 5-3 バックエンド（手で）：`git clone`・`npm ci --omit=dev`・RDS の準備・`.env`・`systemctl start kakeibo-backend` | `active (running)`、`/api/health` が ok。わざと強制終了（`kill -9`）すると、5秒以内に新しいプログラムで自動で起動し直した（起動し直した回数 1） |
+| 2026年11月6日 | 5-4 フロントエンド（手で）：`npm ci`・`npm run build`・`/var/www/kakeibo` に置く | パソコンから画面 200（`Server: nginx` で版は出さない）、`index.html` は `no-cache`・組み立てた JS は1年ためる、`/categories` などの再読み込みも 200、nginx を通した API も ok。3000・3306・5173番にはつながらない |
+| 2026年11月6日 | 5-5 まとめて確かめる | 記録・カテゴリの登録・修正・削除、年間から月へ、スマートフォンの幅 360 の5画面：すべて合格（試験用のデータは後片付け）。EC2 を再起動すると、約25秒で nginx と処理側が自動で動き出した |
+| 2026年11月6日 | 5-6 `infra/deploy.ps1` を作り、動いている EC2 で動かした（2回目の形） | 利用者・テーブルは作り直さず、データもそのまま（17件・28件）。最後に「載せ終わりました」 |
+| 2026年11月6日 | 何もない状態から `deploy.ps1` だけで載せられるか：`destroy`（13個）→ `apply`（13個）→ `deploy.ps1` | **成功**：利用者・テーブル・お試しデータを新しく作り、処理側・画面とも動いた。主な操作の確かめ3つもすべて合格 |
+| 2026年11月6日 | 6章：`terraform destroy`（第5段階を確かめたあと、料金がかからない状態にする） | `Plan: 13 to destroy` を確かめてから消した。**13個を消した**。RDS は見つからない、控えも残っていない。残っているのは S3 バケットだけ |

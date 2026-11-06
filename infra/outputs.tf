@@ -37,7 +37,7 @@ output "db_app_password_parameter" {
   value       = aws_ssm_parameter.db_app_password.name
 }
 
-output "frontend_url" {
-  description = "画面側を EC2 に入れたあとに開くアドレス（自分のパソコンからだけ開ける）"
-  value       = "http://${aws_instance.app.public_ip}:${var.frontend_port}/"
+output "app_url" {
+  description = "アプリを開くアドレス（nginx の 80番。自分のパソコンからだけ開ける）"
+  value       = "http://${aws_instance.app.public_ip}/"
 }

@@ -1,7 +1,8 @@
 #!/bin/bash
 # ============================================================
 # EC2 が初めて起動したときに、1回だけ動く準備の手順
-#   第2段階：Node.js を入れる／第3段階：mysql コマンドを入れる／第4段階：git を入れる
+#   第2段階：Node.js を入れる／第3段階：mysql コマンドを入れる／第4段階：git を入れる／
+#   第5段階：nginx を入れて設定し、処理側を systemd に登録する
 # Terraform（compute.tf）が、ドル記号と波かっこで囲んだ部分に値を入れてから EC2 に渡す
 # 進み具合は、EC2 に SSH で入って sudo tail -n 20 /var/log/cloud-init-output.log で見られる
 # ============================================================
@@ -55,3 +56,104 @@ echo "第3段階の準備が終わりました（mysql $MYSQL_CLIENT_VERSION）"
 dnf -y install git
 git --version
 echo "第4段階の準備が終わりました（git）"
+
+# ------------------------------------------------------------
+# 第5段階：本番らしい形で動かす準備
+#   - 画面（フロントエンド）：npm run build で組み立てたファイルを nginx が 80番で配る。/api は処理側に中継する
+#   - 処理側（バックエンド）：systemd に kakeibo-backend として登録し、自動で動かす
+#   ここでは準備だけをする。アプリのファイルは、あとで GitHub から取ってきて置く（AWS デプロイガイド 4-5）
+# ------------------------------------------------------------
+dnf -y install nginx
+
+# 組み立てた画面のファイルの置き場所（ec2-user が置き、nginx が読む）。置くまでは「準備中」と出す
+mkdir -p /var/www/kakeibo
+cat > /var/www/kakeibo/index.html <<'EOF'
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>家計簿（準備中）</title></head>
+<body><p>準備中です。アプリの画面はまだ置かれていません。</p></body></html>
+EOF
+chown -R ec2-user:ec2-user /var/www/kakeibo
+
+# nginx の設定：80番で画面を配り、/api を処理側（127.0.0.1:3000）に中継する
+cat > /etc/nginx/nginx.conf <<'EOF'
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log notice;
+pid /run/nginx.pid;
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include      /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log   /var/log/nginx/access.log;
+    sendfile     on;
+    keepalive_timeout 65;
+    # nginx の版を返さない（攻撃の手がかりを減らす）
+    server_tokens off;
+
+    server {
+        listen 80 default_server;
+        server_name _;
+        root  /var/www/kakeibo;
+        index index.html;
+
+        # /api で始まるお願いは、同じ EC2 の中の処理側に中継する
+        location /api/ {
+            proxy_pass http://127.0.0.1:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            # 処理側は 10KB より大きい本文を受け付けない。nginx でも大きすぎるものは止める
+            client_max_body_size 16k;
+        }
+
+        # Vite が組み立てたファイル（名前に中身の印が付いている）は、長くためておいてよい
+        location /assets/ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            try_files $uri =404;
+        }
+
+        # それ以外：ファイルがなければ index.html を返す（Vue Router が画面を切り替えるため。/categories での再読み込みなど）
+        location / {
+            add_header Cache-Control "no-cache";
+            try_files $uri $uri/ /index.html;
+        }
+    }
+}
+EOF
+nginx -t
+systemctl enable --now nginx
+
+# 処理側（バックエンド）を systemd に登録する。.env が置かれるまでは動かない（ConditionPathExists）
+cat > /etc/systemd/system/kakeibo-backend.service <<'EOF'
+[Unit]
+Description=kakeibo backend (Node.js + Express)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/home/ec2-user/kakeibo-app/backend/.env
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/kakeibo-app/backend
+Environment=NODE_ENV=production
+ExecStart=/usr/local/bin/node --env-file=.env src/server.js
+# 止まったら3秒後に自動で起動し直す
+Restart=always
+RestartSec=3
+# 処理側にできることを少なくする
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable kakeibo-backend
+echo "第5段階の準備が終わりました（nginx・kakeibo-backend の登録）"
