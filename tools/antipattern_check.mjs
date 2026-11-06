@@ -6,6 +6,7 @@
 // 使い方（プロジェクトの一番上のフォルダで実行する）
 //   node tools/antipattern_check.mjs frontend   … 画面側
 //   node tools/antipattern_check.mjs backend    … 処理側
+//   node tools/antipattern_check.mjs infra      … インフラ（Terraform の .tf ファイル）
 //   最後に --json を付けると、結果を JSON で出す（tools/quality_check.mjs が使う）
 //
 // 見つかったら終わりの番号は 1。くわしくは docs/03_手順書/04_品質チェックの手順書.md
@@ -57,12 +58,32 @@ const BACKEND = [
   { id: 'AP-B10', rp: 'RP-07', title: '結果の番号を書かずに返している（res.json だけ。API 設計書の番号を必ず書く）', test: (l) => /\bres\.json\(/.test(l) && !/res\.status\(/.test(l) },
 ];
 
+// インフラ（Terraform の .tf ファイル）
+//   block：その行が入っている、いちばん外側のまとまりの種類（resource "aws_db_instance" なら aws_db_instance）
+const INFRA = [
+  { id: 'AP-I01', rp: 'RP-30', title: '入ってくる通信を、どこからでも（0.0.0.0/0・::/0）許している（自分の IP・CloudFront・EC2 の門番に限る）',
+    test: (l, f, block) => /ingress|aws_security_group$/.test(block) && /"0\.0\.0\.0\/0"|"::\/0"/.test(l) },
+  { id: 'AP-I02', rp: 'RP-31', title: 'パスワードなどの秘密の情報を .tf に直接書いている（ephemeral で作り、password_wo・value_wo で書き込む）',
+    test: (l) => /^\s*(\w*_)?(password|secret|token)(_\w+)?\s*=\s*"/i.test(l) },
+  { id: 'AP-I03', rp: 'RP-31', title: '秘密の情報を password・value・secret_string で渡している（Terraform の記録（ステート）に残る。_wo のほうを使う）',
+    test: (l, f, block) => /aws_db_instance|aws_ssm_parameter|aws_secretsmanager_secret_version/.test(block) && /^\s*(password|value|secret_string)\s*=/.test(l) },
+  { id: 'AP-I04', rp: 'RP-31', title: '自分の IP アドレス・アクセスキー・メールアドレスを .tf に直接書いている（terraform.tfvars に書く。GitHub に上げない）',
+    test: (l) => /"(?!0\.0\.0\.0\/0")\d{1,3}(\.\d{1,3}){3}(\/\d+)?"|AKIA[0-9A-Z]{16}|[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(l) },
+  { id: 'AP-I05', rp: 'RP-32', title: 'RDS をインターネットに公開している（publicly_accessible = true）', test: (l) => /publicly_accessible\s*=\s*true/.test(l) },
+  { id: 'AP-I06', rp: 'RP-32', title: '保存する場所を暗号化していない（encrypted・storage_encrypted・encrypt = false）', test: (l) => /^\s*(encrypted|storage_encrypted|encrypt)\s*=\s*false/.test(l) },
+  { id: 'AP-I07', rp: 'RP-32', title: 'EC2 の古い情報の取り出し方（IMDSv1）を許している（http_tokens = "required" にする）', test: (l) => /http_tokens\s*=\s*"optional"/.test(l) },
+  { id: 'AP-I08', rp: 'RP-32', title: 'CloudFront で http のままの通信を許している（redirect-to-https にする）', test: (l) => /viewer_protocol_policy\s*=\s*"allow-all"/.test(l) },
+  { id: 'AP-I09', rp: 'RP-33', title: 'AWS プロバイダーの版を細かく固定していない（6.71.0 のように書く）', test: (l, f, block) => block === 'terraform' && /^\s*version\s*=\s*"\s*(>|<|~|!)/.test(l) },
+  { id: 'AP-I10', rp: 'RP-33', title: 'EC2 のイメージ（AMI）の番号を直接書いている（地域や時期で変わる。SSM の公開の値から取る）', test: (l) => /^\s*ami\s*=\s*"ami-/.test(l) },
+];
+
 const TARGETS = {
   frontend: { rules: FRONTEND, files: () => [...collect(path.join(ROOT, 'frontend', 'src'), ['.js', '.vue'])] },
   backend: { rules: BACKEND, files: () => collect(path.join(ROOT, 'backend', 'src'), ['.js']) },
+  infra: { rules: INFRA, files: () => collect(path.join(ROOT, 'infra'), ['.tf']).filter((f) => !f.includes(`${path.sep}.terraform${path.sep}`)) },
 };
 if (!TARGETS[target]) {
-  console.error('使い方：node tools/antipattern_check.mjs frontend|backend [--json]');
+  console.error('使い方：node tools/antipattern_check.mjs frontend|backend|infra [--json]');
   process.exit(2);
 }
 
@@ -73,10 +94,17 @@ const { rules, files } = TARGETS[target];
 const findings = [];
 const fileList = files();
 for (const file of fileList) {
+  const tf = file.endsWith('.tf');
+  let block = '';
   readFileSync(file, 'utf8').split(/\r?\n/).forEach((line, i) => {
-    if (isComment(line)) return;
+    if (isComment(line) || (tf && /^\s*#/.test(line))) return;
+    // .tf では、行の頭から始まるまとまり（resource "種類" "名前" {、terraform { など）の種類を覚えておく
+    if (tf) {
+      const m = /^(resource|data|ephemeral)\s+"([^"]+)"|^(terraform|provider|variable|output|locals|module)\b/.exec(line);
+      if (m) block = m[2] || m[3];
+    }
     for (const rule of rules) {
-      if (rule.test(line, file)) findings.push({ ...rule, file: path.relative(ROOT, file), line: i + 1, code: line.trim() });
+      if (rule.test(line, file, block)) findings.push({ ...rule, file: path.relative(ROOT, file), line: i + 1, code: line.trim() });
     }
   });
 }
