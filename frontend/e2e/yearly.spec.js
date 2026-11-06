@@ -15,12 +15,12 @@ const rows = (page) => page.locator('.year-row:not(.list-head)');
 const row = (page, n) => rows(page).nth(n - 1); // n 月の行
 const cards = (page) => page.locator('.summary-card .value');
 
-test('遷移21：メニュー「年間」を押すと、今年の年間集計画面を開き、「年間」を目立たせる', async ({ page }) => {
+test('遷移21：メニュー「年間の集計」を押すと、今年の年間集計画面を開き、「年間の集計」を目立たせる', async ({ page }) => {
   await page.goto('/records');
-  await page.locator('.header-nav').getByRole('link', { name: '年間' }).click();
+  await page.locator('.header-nav').getByRole('link', { name: '年間の集計', exact: true }).click();
   await expect(page).toHaveURL(/\/yearly$/);
   await expect(page.locator('.month-label')).toHaveText(`${thisMonth().slice(0, 4)}年`);
-  await expect(page.locator('.header-nav a.is-active')).toHaveText('年間');
+  await expect(page.locator('.header-nav a.is-active')).toHaveText('年間の集計');
   await expect(rows(page)).toHaveCount(12);
 });
 
