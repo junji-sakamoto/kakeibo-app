@@ -75,6 +75,20 @@ resource "aws_db_instance" "main" {
   }
 }
 
+# アプリ用の利用者（kakeibo_app）のパスワード（第4段階）。作り方は管理者と同じ
+ephemeral "aws_secretsmanager_random_password" "db_app" {
+  password_length     = 32
+  exclude_punctuation = true
+}
+
+resource "aws_ssm_parameter" "db_app_password" {
+  name             = "/kakeibo/db/app-password"
+  description      = "kakeibo_app (MySQL) password"
+  type             = "SecureString"
+  value_wo         = ephemeral.aws_secretsmanager_random_password.db_app.random_password
+  value_wo_version = 1
+}
+
 # 管理者のパスワードを、SSM パラメータストアに暗号化して置く（無料）。
 # value_wo（書き込むだけ）なので、Terraform の記録には残らない。EC2 には読ませず、パソコンから読む
 resource "aws_ssm_parameter" "db_admin_password" {

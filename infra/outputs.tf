@@ -32,6 +32,11 @@ output "db_admin_password_parameter" {
   value       = aws_ssm_parameter.db_admin_password.name
 }
 
+output "db_app_password_parameter" {
+  description = "アプリ用の利用者（kakeibo_app）のパスワードが置いてある場所（SSM パラメータストア）"
+  value       = aws_ssm_parameter.db_app_password.name
+}
+
 output "frontend_url" {
   description = "画面側を EC2 に入れたあとに開くアドレス（自分のパソコンからだけ開ける）"
   value       = "http://${aws_instance.app.public_ip}:${var.frontend_port}/"
