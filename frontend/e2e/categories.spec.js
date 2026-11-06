@@ -15,11 +15,11 @@ const names = (page, title) => section(page, title).locator('.category-row > spa
 
 // ------------------------------------------------------------
 test.describe('画面3 カテゴリ一覧画面', () => {
-  test('遷移17・機能7：メニューの「カテゴリ」で開き、支出用・収入用に分けて表示する（「その他」は一番下）', async ({ page }) => {
+  test('遷移17・機能7：メニューの「カテゴリの設定」で開き、支出用・収入用に分けて表示する（「その他」は一番下）', async ({ page }) => {
     await page.goto('/records');
-    await page.locator('.header-nav').getByRole('link', { name: 'カテゴリ', exact: true }).click();
+    await page.locator('.header-nav').getByRole('link', { name: 'カテゴリの設定', exact: true }).click();
     await expect(page).toHaveURL(/\/categories$/);
-    await expect(page.locator('.header-nav').getByRole('link', { name: 'カテゴリ', exact: true })).toHaveClass(/is-active/);
+    await expect(page.locator('.header-nav').getByRole('link', { name: 'カテゴリの設定', exact: true })).toHaveClass(/is-active/);
     await expect(page.locator('.category-section h2')).toHaveText(['■ 支出用', '■ 収入用']);
     await expect(names(page, '支出用').first()).toHaveText('食費');
     await expect(names(page, '支出用').last()).toHaveText('その他');
