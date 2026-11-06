@@ -25,11 +25,13 @@ test.beforeEach(async ({ request }) => cleanUp(request));
 
 // ------------------------------------------------------------
 test.describe('画面1 記録一覧画面', () => {
-  test('遷移1：アプリを開くと、今月の記録一覧画面が表示され、メニューの「記録」が目立つ', async ({ page }) => {
+  test('遷移1：アプリを開くと、今月の記録一覧画面が表示され、メニューの「月ごとの記録」が目立つ', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/records$/);
     await expect(page.locator('.month-label')).toHaveText(monthLabel(thisMonth()));
-    await expect(page.locator('.header-nav').getByRole('link', { name: '記録', exact: true })).toHaveClass(/is-active/);
+    await expect(page.locator('.header-nav').getByRole('link', { name: '月ごとの記録', exact: true })).toHaveClass(/is-active/);
+    // メニューの名前は、押すと何ができるかが分かる名前にしている
+    await expect(page.locator('.header-nav a')).toHaveText(['月ごとの記録', '年間の集計', 'カテゴリの設定']);
   });
 
   test('機能2・機能5：その月の記録だけを、日付の新しい順（同じ日はあとから登録した順）に並べ、合計を表示する', async ({ page, request }) => {
@@ -241,8 +243,8 @@ test.describe('記録の削除', () => {
 
 // ------------------------------------------------------------
 test.describe('画面の上のメニュー・ブラウザの「戻る」', () => {
-  test('遷移15・遷移16：「家計簿」「記録」を押すと、今月の記録一覧に移る', async ({ page }) => {
-    for (const name of ['家計簿', '記録']) {
+  test('遷移15・遷移16：「家計簿」「月ごとの記録」を押すと、今月の記録一覧に移る', async ({ page }) => {
+    for (const name of ['家計簿', '月ごとの記録']) {
       await page.goto('/records?month=2099-12');
       const link = name === '家計簿' ? page.locator('.header-title') : page.locator('.header-nav').getByRole('link', { name, exact: true });
       await link.click();
@@ -256,7 +258,7 @@ test.describe('画面の上のメニュー・ブラウザの「戻る」', () =>
     await page.getByLabel('日付').fill('2099-12-10');
     await page.getByLabel('カテゴリ').selectOption({ label: '食費' });
     await page.getByLabel('金額').fill('700');
-    await page.locator('.header-nav').getByRole('link', { name: 'カテゴリ', exact: true }).click();
+    await page.locator('.header-nav').getByRole('link', { name: 'カテゴリの設定', exact: true }).click();
     await expect(page).toHaveURL(/\/categories$/);
     const { body } = await api(request, 'GET', '/records?month=2099-12');
     expect(body.records).toHaveLength(0);
