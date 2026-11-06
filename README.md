@@ -21,7 +21,7 @@
 | [03 手順書（品質チェック）](docs/03_手順書/04_品質チェックの手順書.md) | ① フロントエンド（ESLint・ビルド・アンチパターン）、② バックエンド（ESLint・ビルド・アンチパターン・試験）、③ ドキュメントの整合性（設計書と実装の乖離チェック）をまとめて確かめる手順 | 作成済み |
 | [03 AWS と Terraform の基礎知識](docs/03_手順書/05_AWSとTerraformの基礎知識.md) | AWS・IaC・Terraform の言葉と考え方（はじめての人向けの読み物） | 確認中 |
 | [03 手順書（AWS の認証設定）](docs/03_手順書/06_AWSの認証設定の手順書.md) | 自分のパソコンから、AWS CLI と Terraform で AWS を操作できるようにする手順（`aws login`） | 確認中 |
-| [**AWS デプロイガイド**](AWSデプロイガイド.md) | **今 AWS にあるもの（今の状態）**と、Terraform で AWS に段階的に作る手順・変更の記録。AWS を変えるたびに書き換える | 作業中（第1段階が完了） |
+| [03 手順書（AWS への公開）](docs/03_手順書/07_AWSへの公開の手順書.md) | Terraform で AWS に作り、`deploy.ps1` でアプリを載せて公開し、終わったら消す手順。困ったとき | 作成済み |
 | [04 試験計画書](docs/04_試験/00_試験計画書.md) | 試験の目的・やり方・合格の基準と、機能・画面遷移・非機能の試験の結果 | 作成済み（公開後の試験が残っている） |
 | [画面モック](mock/index.html) | 画面のイメージを確認するための試作品（ダブルクリックでブラウザで開ける） | 確認中 |
 
@@ -31,7 +31,6 @@
 kakeibo-app/
 ├── README.md                          ← このファイル（入口）
 ├── 要件定義書.md                      ← 要件定義を1冊にまとめたもの（自動で作る。直接書き換えない）
-├── AWSデプロイガイド.md               ← 今 AWS にあるものと、AWS に作る手順（AWS を変えるたびに書き換える）
 ├── .gitignore                         ← GitHub に上げないファイルの一覧
 ├── .gitattributes                     ← Git が改行の形を変えないファイルの一覧
 ├── .githooks/                         ← コミットする前に自動で動く確認（Git のフック）
@@ -53,9 +52,19 @@ kakeibo-app/
 │   ├── sql/                           ← テーブル作成・最初のデータ
 │   ├── reset/                         ← お試しデータを戻すときに使う
 │   └── tests/                         ← 決まりどおりに動くかの確認
-├── infra/                             ← AWS に作るもの（Terraform）。段階的に作る（今は第1段階：EC2 だけ）
-│   ├── *.tf                           ← Terraform のファイル（ネットワーク・門番・EC2 など）
-│   └── terraform.tfvars.example       ← 外から渡す値の見本
+├── infra/                             ← AWS に作るもの（Terraform）と、アプリを載せるスクリプト
+│   ├── versions.tf                    ← Terraform と AWS プロバイダーの版、記録（ステート）の置き場所（S3）
+│   ├── variables.tf                   ← 外から渡す値（自分の IP アドレス・通知のメールアドレスなど）
+│   ├── network.tf                     ← デフォルト VPC を読む（作らない）
+│   ├── security.tf                    ← 門番（SSH は自分の IP だけ・80番は CloudFront だけ・3306番は EC2 だけ）
+│   ├── compute.tf                     ← EC2・SSH の公開鍵
+│   ├── user_data.sh.tftpl             ← EC2 が初めて起動したときの準備（Node.js・nginx・処理側のサービスの登録など）
+│   ├── database.tf                    ← RDS・パスワード（SSM パラメータストア）
+│   ├── cdn.tf                         ← CloudFront（https の入口）
+│   ├── budget.tf                      ← 予算の通知
+│   ├── outputs.tf                     ← 作ったあとに表示する値（公開のアドレス app_url など）
+│   ├── deploy.ps1                     ← アプリを EC2 に載せる（.\infra\deploy.ps1）
+│   └── terraform.tfvars.example       ← 外から渡す値の見本（本物の terraform.tfvars は GitHub に上げない）
 ├── mock/                              ← 画面モック（確認用の試作品。本番では使わない）
 │   ├── index.html
 │   ├── style.css
@@ -92,7 +101,7 @@ kakeibo-app/
     │   ├── 04_テーブル定義書.md
     │   ├── 05_データの流れ.md
     │   ├── 06_API設計書.md
-    │   └── 07_構成設計書.md           ← AWS での動かし方
+    │   └── 07_構成設計書.md           ← AWS での動かし方（インフラ構成図・主な設定）
     └── 03_手順書/
         ├── 00_開発環境と版の一覧.md
         ├── 01_データベースの手順書.md
@@ -100,7 +109,8 @@ kakeibo-app/
         ├── 03_フロントエンドの手順書.md
         ├── 04_品質チェックの手順書.md
         ├── 05_AWSとTerraformの基礎知識.md
-        └── 06_AWSの認証設定の手順書.md
+        ├── 06_AWSの認証設定の手順書.md
+        └── 07_AWSへの公開の手順書.md   ← AWS に作る・載せる・消す
     └── 04_試験/
         ├── 00_試験計画書.md           ← 試験の入口
         ├── 01_機能試験.md
@@ -109,7 +119,31 @@ kakeibo-app/
         └── 04_試験結果のまとめ.md
 ```
 
-プログラムは `frontend/`（画面側）・`backend/`（処理側）・`database/`（データベース）のフォルダに分けて作ります。今は 3つとも、自分のパソコンで動く形ができています（`frontend/`：4つの画面、`backend/`：API1〜11、`database/`：MySQL）。
+プログラムは `frontend/`（画面側）・`backend/`（処理側）・`database/`（データベース）のフォルダに分けて作ります。3つとも、自分のパソコンで動く形ができています（`frontend/`：5つの画面、`backend/`：API1〜12、`database/`：MySQL）。
+
+## 本番環境（AWS）の構成
+
+本番環境は、AWS の上に、AWS CLI と Terraform（`infra/`）で作ります。くわしくは [構成設計書](docs/02_設計/07_構成設計書.md)、作り方は [AWS への公開の手順書](docs/03_手順書/07_AWSへの公開の手順書.md) を参照してください。
+
+```mermaid
+flowchart LR
+  viewer["使う人のブラウザ"] -->|"https"| cf["CloudFront"]
+  cf -->|"80番"| nginx
+  subgraph ec2["EC2"]
+    nginx["nginx<br/>画面を配る"] -->|"/api"| api["処理側<br/>Node.js ＋ Express"]
+  end
+  api -->|"3306番"| rds[("RDS<br/>MySQL")]
+```
+
+| 部品 | 使うもの | ひとこと |
+|---|---|---|
+| https の入口 | CloudFront | `https://…cloudfront.net/` で誰でも開ける。EC2 には直接つながらない |
+| 画面側・処理側 | EC2（1台） | nginx が組み立てた画面を配り、`/api` を処理側（systemd で自動で動かす）に中継する |
+| データベース | RDS for MySQL | インターネットからはつなげない。EC2 からだけつなげる |
+| パスワード | SSM パラメータストア | Terraform がその場で作る。GitHub にも Terraform の記録にも残さない |
+| 予算の通知 | AWS Budgets | 月4,000円をこえたらメール |
+
+- 本番環境は**必要なときだけ作り、終わったら消します**（作るのは `plan`・`apply`・`deploy.ps1` の3行、20分ほど）
 
 ## ブランチの使い方
 

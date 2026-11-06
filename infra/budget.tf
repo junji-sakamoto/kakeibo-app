@@ -11,7 +11,8 @@ resource "aws_budgets_budget" "monthly" {
   time_unit    = "MONTHLY"
 
   # 家計簿のもの（札 Project = kakeibo）だけを数える。
-  # 札で数えるには、請求の仕組みで Project の札を有効にしておく必要がある（AWS デプロイガイドの 4-6）
+  # 札で数えるには、請求の仕組みで Project の札を有効にしておく必要がある
+  # （docs/03_手順書/07_AWSへの公開の手順書.md の 2章の 5.）
   cost_filter {
     name   = "TagKeyValue"
     values = ["user:Project$kakeibo"]

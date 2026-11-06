@@ -1,11 +1,11 @@
 ---
 name: quality-check
-description: 家計簿アプリ（kakeibo-app）の品質チェック。①フロントエンド（ESLint の実行・ビルド確認・アンチパターンチェック）、②バックエンド（Checkstyle にあたる ESLint の実行・ビルド確認・アンチパターンチェック）、③ドキュメントの整合性（設計書と実装の乖離チェック）を tools/quality_check.mjs でまとめて確かめ、さらにレビューポイント（RP-xx）で人の目でも見直して、結果を日本語の表で報告する。「品質チェックをして」「品質を確認して」「レビューして」「コミット（公開）の前に確かめて」と頼まれたときに使う。
+description: 家計簿アプリ（kakeibo-app）の品質チェック。①フロントエンド（ESLint の実行・ビルド確認・アンチパターンチェック）、②バックエンド（Checkstyle にあたる ESLint の実行・ビルド確認・アンチパターンチェック）、③ドキュメントの整合性（設計書と実装の乖離チェック）、④インフラ（terraform fmt・terraform validate・Terraform のアンチパターンチェック・deploy.ps1 の書き方・GitHub に上げないファイル）を tools/quality_check.mjs でまとめて確かめ、さらにレビューポイント（RP-xx）で人の目でも見直して、結果を日本語の表で報告する。「品質チェックをして」「品質を確認して」「レビューして」「コミット（公開）の前に確かめて」と頼まれたときに使う。
 ---
 
 # 品質チェック（家計簿アプリ）
 
-このプロジェクトの品質を、次の**3つのまとまり**で確かめて報告する。説明は**初心者にも分かる、やさしい日本語**で行う。
+このプロジェクトの品質を、次の**4つのまとまり**で確かめて報告する。説明は**初心者にも分かる、やさしい日本語**で行う。
 
 | まとまり | 確かめること | 自動（道具） | 人の目 |
 |---|---|---|---|
@@ -15,7 +15,13 @@ description: 家計簿アプリ（kakeibo-app）の品質チェック。①フ�
 | **② バックエンド** | Checkstyle にあたるもの：ESLint の実行（※） | `backend` で `npm run lint` | — |
 | | ビルド確認（書き方・読み込み・起動） | `backend` で `npm run build` | — |
 | | アンチパターンチェック | `node tools/antipattern_check.mjs backend`（AP-B01〜） | レビューポイント「3-1」 |
-| **③ ドキュメントの整合性** | 設計書と実装の乖離チェック | `node tools/docs_consistency_check.mjs`（メッセージ・API・画面・テーブル・版） | 「2. 資料と実装の見比べ」 |
+| **③ ドキュメントの整合性** | 設計書と実装の乖離チェック | `node tools/docs_consistency_check.mjs`（メッセージ・API・画面・テーブル・版・本番環境の版） | 「2. 資料と実装の見比べ」 |
+| **④ インフラ（Terraform）** | 書き方のそろえ方 | `terraform -chdir=infra fmt -check -recursive` | — |
+| | 文法と設定の確認 | `terraform -chdir=infra validate` | — |
+| | アンチパターンチェック | `node tools/antipattern_check.mjs infra`（AP-I01〜） | レビューポイント「3-4」 |
+| | deploy.ps1 の書き方・GitHub に上げないファイル | `tools/quality_check.mjs` の中 | レビューポイント「3-4」 |
+
+※ ④ は **AWS に接続しない**（ログインしていなくても行え、お金もかからない）。`terraform plan` は AWS に接続するので、まとめた確認には入れない。AWS に作る前に、手順書どおり `plan` の結果（`Plan: 15 to add` など）を人の目で見る。
 
 ※ **Checkstyle は Java 専用**の書き方のチェックの道具。このアプリの処理側は JavaScript なので、Checkstyle と同じ役割を **ESLint** が担う。
 ※ Node.js には Java のようなビルド（コンパイル）がないので、処理側の「ビルド確認」は、①すべてのファイルの書き方（文法）②プログラムとして読み込めるか ③起動して `GET /api/health` が 200 を返すか、の3つで確かめる（`backend/scripts/build-check.mjs`）。
@@ -25,14 +31,14 @@ description: 家計簿アプリ（kakeibo-app）の品質チェック。①フ�
 ## 1. まとめて確かめる（自動）
 
 1. データベースが起動しているか確かめる（`docker inspect -f "{{.State.Health.Status}}" kakeibo-db` が `healthy`）。起動していなければ、起動してよいか使う人に聞いてから `docker compose -f database/compose.yaml up -d --wait` で起動する
-2. プロジェクトの一番上のフォルダで実行する（①②③と共通の確認、全部で19項目）：
+2. プロジェクトの一番上のフォルダで実行する（①②③④と共通の確認、全部で27項目）：
 
    ```powershell
    node tools/quality_check.mjs
    ```
 
 3. 不合格があれば、原因を調べる。**直す前に**、何が原因で、どう直すかを使う人に説明する
-4. アンチパターンや乖離の決まりは、道具のプログラムの中に書いてある（`tools/antipattern_check.mjs` の `FRONTEND`・`BACKEND`、`tools/docs_consistency_check.mjs`）。新しい決まりを足したら、**わざと間違いを入れて見つかることを確かめてから元に戻す**（RP-27）
+4. アンチパターンや乖離の決まりは、道具のプログラムの中に書いてある（`tools/antipattern_check.mjs` の `FRONTEND`・`BACKEND`・`INFRA`、`tools/docs_consistency_check.mjs`）。新しい決まりを足したら、**わざと間違いを入れて見つかることを確かめてから元に戻す**（RP-27）
 
 ## 2. 資料と実装の見比べ（③ ドキュメントの整合性・人の目で）
 
@@ -48,7 +54,9 @@ description: 家計簿アプリ（kakeibo-app）の品質チェック。①フ�
 | `docs/02_設計/05_データの流れ.md`・`06_API設計書.md` | `backend/src/routes/*.js`、`frontend/src/api.js` |
 | `docs/02_設計/04_テーブル定義書.md` | `database/sql/01_create_tables.sql` |
 | `docs/01_要件定義/07_非機能要件.md` | 安全のための設定（helmet）、入力のチェック、ログ、版の固定 |
-| `docs/03_手順書/00_開発環境と版の一覧.md` | `package.json`・`package-lock.json`・`database/compose.yaml` の実際の版 |
+| `docs/03_手順書/00_開発環境と版の一覧.md` | `package.json`・`package-lock.json`・`database/compose.yaml`・`infra/versions.tf`・`infra/variables.tf` の実際の版 |
+| `docs/02_設計/07_構成設計書.md`（作るもの・門番・主な設定・EC2 の中・ファイルの一覧・作るものの数） | `infra/*.tf`・`infra/user_data.sh.tftpl`・`infra/deploy.ps1`。細かい設定値は資料に書かない決まりなので、**仕組み**が合っているかを見る |
+| `docs/03_手順書/07_AWSへの公開の手順書.md`・README の「本番環境（AWS）の構成」 | `infra/deploy.ps1`・`infra/outputs.tf`・`infra/terraform.tfvars.example` |
 
 資料を直したときの決まり：
 
@@ -105,12 +113,24 @@ description: 家計簿アプリ（kakeibo-app）の品質チェック。①フ�
 | RP-26 | 試験が、お試しデータ（カテゴリ17件・記録28件）を変えていないか | 試験の前後で件数を比べる | 作ったときの決まり |
 | RP-27 | **試験や品質チェックのプログラムそのものが、正しく間違いを見つけられるか**（わざと間違いを入れると不合格になるか。数え間違い・実行する場所の間違いがないか） | わざと間違いを入れて実行し、不合格になることを確かめてから元に戻す | 2026-11-03 の見直し（品質チェック・乖離チェックのプログラムの間違いを、合わせて4つ見つけた） |
 
+### 3-4. ④ インフラ（Terraform・deploy.ps1・EC2 の中）
+
+| 番号 | レビューポイント | 確かめ方 | 由来 |
+|---|---|---|---|
+| RP-30 | 門番（セキュリティグループ）で、入ってくる通信を必要なところだけに絞っているか。22番は自分の IP だけ、80番は CloudFront だけ、3306番は EC2 の門番だけ。3000番（処理側）は開けていないか | AP-I01。`infra/security.tf` | 2026-11-04〜06 の AWS の段階づくり |
+| RP-31 | パスワード・自分の IP・メールアドレス・アクセスキーを、`.tf` や GitHub に入れていないか。パスワードは ephemeral で作り、`password_wo`・`value_wo` で書き込んで、Terraform の記録（ステート）に残していないか。`terraform.tfvars`・`*.tfstate`・`*.tfplan`・`.terraform/` を GitHub に上げていないか | AP-I02〜AP-I04、「GitHub に上げないファイル」の確認。コミットする前は `git add -A` を使わず、ファイルを1つずつ指定する | 2026-11-05（`git add -A` で `.terraform` の大きな部品をコミットし、プッシュに失敗した） |
+| RP-32 | 外から守る設定が入っているか：RDS は公開しない、保存する場所の暗号化、IMDSv2（`http_tokens = "required"`）、CloudFront は https へ移す、nginx は版を出さない（`server_tokens off`） | AP-I05〜AP-I08。`infra/user_data.sh.tftpl` の nginx の設定は人の目で見る | 2026-11-05〜06 の AWS の段階づくり |
+| RP-33 | 版を固定しているか：Terraform 本体（`~> 1.16.6`）、AWS プロバイダー（細かく固定し、`.terraform.lock.hcl` を GitHub に上げる）、Node.js・RDS・mysql コマンドの版は `variables.tf` に1か所。EC2 のイメージ番号を直接書いていないか | AP-I09・AP-I10、乖離チェック（本番環境の版） | 2026-11-04 の版の見直し |
+| RP-34 | `deploy.ps1` が**何度実行しても同じ結果**になるか（利用者・テーブルがあれば作らない、`.env` は作り直す）。秘密の値を画面やログに出していないか。`pkill` などで自分のコマンドまで止めていないか（`[n]ode` のように書く） | `infra/deploy.ps1` を読む。変えたときは、作り直した直後と2回目の両方で実行して確かめる | 2026-11-05（`pkill -f vite` が自分の SSH のコマンドを止めた） |
+| RP-35 | EC2 が起動したときの準備（`user_data.sh.tftpl`）が、足りない部品（`libatomic` など）や、置き場所の書き間違い（`$releasever`）で止まらないか。止まったまま次の手順に進んでいないか | 作ったあと `cloud-init status` が `done` か、`/var/log/cloud-init-output.log` に失敗がないか（手順書の「確かめる」） | 2026-11-05（Node.js の libatomic、MySQL の置き場所の 404） |
+| RP-36 | AWS の構成を変えたら、構成設計書・公開の手順書・README の「本番環境（AWS）の構成」を同じ PR で直したか。使い終わったら `terraform destroy` で消し、お金のかからない状態に戻したか（`terraform -chdir=infra state list` が空） | 資料と `infra/` を見比べる。作業の最後に `state list` を見る | 2026-11-06（AWS デプロイガイドを構成設計書・手順書に移した） |
+
 新しい問題が見つかったときは、同じ問題を二度と見落とさないように、**ここに新しいレビューポイントを足す**（番号は続きから。由来に日付を書く）。
 
 ## 4. 報告のしかた
 
 1. 最初に、全体の結果（合格・不合格の数）を1行で伝える
-2. 3つのまとまり（① フロントエンド・② バックエンド・③ ドキュメントの整合性）ごとに、次の表で報告する
+2. 4つのまとまり（① フロントエンド・② バックエンド・③ ドキュメントの整合性・④ インフラ）ごとに、次の表で報告する
 
    | まとまり | 番号（RP・AP） | 見つかったこと | 重さ（高・中・低） | 直し方 |
    |---|---|---|---|---|

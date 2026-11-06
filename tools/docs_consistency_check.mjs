@@ -175,6 +175,31 @@ const diff = (a, b) => [...a].filter((x) => !b.has(x));
 }
 
 // ------------------------------------------------------------
+// 6. 版（本番環境）：開発環境と版の一覧 ⇔ infra/versions.tf・variables.tf・.terraform.lock.hcl
+// ------------------------------------------------------------
+{
+  const problems = [];
+  const doc = lines('docs/03_手順書/00_開発環境と版の一覧.md');
+  const versions = read('infra/versions.tf');
+  const variables = read('infra/variables.tf');
+  const required = /required_version\s*=\s*"([^"]+)"/.exec(versions)?.[1];
+  const provider = /source\s*=\s*"hashicorp\/aws"\s*\n\s*(?:#.*\n\s*)*version\s*=\s*"([^"]+)"/.exec(versions)?.[1];
+  const locked = /provider "registry\.terraform\.io\/hashicorp\/aws" \{\s*\n\s*version\s*=\s*"([^"]+)"/.exec(read('infra/.terraform.lock.hcl'))?.[1];
+  const def = (name) => new RegExp(`variable "${name}" \\{[^}]*?default\\s*=\\s*"([^"]+)"`).exec(variables)?.[1];
+  const has = (alias, text) => doc.some((l) => l.includes(alias) && l.includes(text));
+  if (!required || !has('Terraform（使ってよい版）', `required_version = "${required}"`)) problems.push(`Terraform の required_version（${required}）が 版の一覧 と違う`);
+  if (!provider || !has('AWS プロバイダー', `**${provider}**`)) problems.push(`AWS プロバイダー ${provider}（versions.tf）が 版の一覧 と違う`);
+  if (provider !== locked) problems.push(`AWS プロバイダーの版が versions.tf（${provider}）と .terraform.lock.hcl（${locked}）で違う（terraform init をやり直す）`);
+  const VARS = { node_version: 'EC2 の Node.js', db_engine_version: 'RDS for MySQL', mysql_client_version: 'EC2 の mysql コマンド' };
+  for (const [name, alias] of Object.entries(VARS)) {
+    const v = def(name);
+    if (!v || !has(alias, `**${v}**`)) problems.push(`${name}（${v}）が 版の一覧 の「${alias}」と違う`);
+  }
+  add('版（本番環境）：開発環境と版の一覧 ⇔ infra の版', problems,
+    `Terraform ${required}・AWS プロバイダー ${provider}・EC2 の Node.js ${def('node_version')}・RDS ${def('db_engine_version')}・mysql コマンド ${def('mysql_client_version')} が一致`);
+}
+
+// ------------------------------------------------------------
 // 結果
 // ------------------------------------------------------------
 if (asJson) {

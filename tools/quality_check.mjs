@@ -4,6 +4,7 @@
 //   ① フロントエンド：ESLint の実行・ビルド確認・アンチパターンチェック（＋E2E 試験・部品の弱点）
 //   ② バックエンド　：Checkstyle にあたるもの（ESLint）の実行・ビルド確認・アンチパターンチェック（＋試験・性能の試験・部品の弱点）
 //   ③ ドキュメントの整合性：設計書と実装の乖離チェック（＋要件定義書が最新か・リンク切れ）
+//   ④ インフラ　　：terraform fmt・terraform validate・アンチパターンチェック・deploy.ps1 の書き方・上げないファイル
 //
 // 使い方（プロジェクトの一番上のフォルダで実行する。先にデータベースを起動しておく）
 //   node tools/quality_check.mjs
@@ -169,6 +170,45 @@ for (const file of markdownFiles(ROOT)) {
   }
 }
 record('資料のリンク切れがないか', broken.length === 0, `リンク ${linkCount} 個、リンク切れ ${broken.length} 個${broken.length ? `：${broken.join('、')}` : ''}`);
+
+// ============================================================
+// ④ インフラ（Terraform・deploy.ps1）
+// AWS には接続しない（ログインしていなくても行える。お金もかからない）
+// ============================================================
+heading('④ インフラ（Terraform）');
+{
+  const tf = spawnSync('terraform', ['version'], { encoding: 'utf8' });
+  if (tf.status !== 0) {
+    record('Terraform の確認', false, 'terraform コマンドが見つかりません。docs/03_手順書/00_開発環境と版の一覧.md を見て入れてください');
+  } else {
+    check('書き方のそろえ方（terraform fmt -check）', 'terraform -chdir=infra fmt -check -recursive', '.', {
+      note: (o) => (o.trim() ? `そろっていないファイル：${o.trim().split(/\r?\n/).join('、')}（terraform -chdir=infra fmt で直る）` : 'すべてそろっている'),
+    });
+    // validate には部品（プロバイダー）が必要。まだ入っていなければ、S3 の記録にはつながずに入れる
+    if (!existsSync(path.join(ROOT, 'infra', '.terraform'))) {
+      spawnSync('terraform', ['-chdir=infra', 'init', '-backend=false', '-input=false'], { cwd: ROOT, encoding: 'utf8' });
+    }
+    check('文法と設定の確認（terraform validate）', 'terraform -chdir=infra validate -no-color', '.', { note: last(/Success!.*/) });
+  }
+}
+antipattern('infra');
+{
+  // deploy.ps1 が PowerShell として読めるか（書き間違いがないか）。実行はしない
+  const file = path.join(ROOT, 'infra', 'deploy.ps1').replace(/'/g, "''");
+  const r = spawnSync('pwsh', ['-NoProfile', '-Command',
+    `$e = $null; [void][System.Management.Automation.Language.Parser]::ParseFile('${file}', [ref]$null, [ref]$e); $e | ForEach-Object { $_.ToString() }; exit $e.Count`], { encoding: 'utf8' });
+  record('deploy.ps1 の書き方（PowerShell として読めるか）', r.status === 0,
+    r.error ? `pwsh が見つかりません：${r.error.message}` : r.status === 0 ? '書き間違い 0 件' : `${r.stdout}${r.stderr}`.trim());
+}
+{
+  // GitHub に上げてはいけないファイル（本物の値・記録・plan の結果・部品）が入っていないか
+  const r = spawnSync('git', ['ls-files', 'infra'], { cwd: ROOT, encoding: 'utf8' });
+  const tracked = r.stdout.split(/\r?\n/).filter(Boolean);
+  const bad = tracked.filter((f) => /(^|\/)terraform\.tfvars$|\.tfstate|\.tfplan$|(^|\/)\.terraform\//.test(f));
+  const lock = tracked.includes('infra/.terraform.lock.hcl');
+  record('GitHub に上げないファイルが入っていないか（terraform.tfvars・記録・plan の結果・部品）', r.status === 0 && bad.length === 0 && lock,
+    bad.length ? `入っている：${bad.join('、')}（git rm --cached で外す）` : lock ? `${tracked.length} 個のファイルを調べた（.terraform.lock.hcl は上げる）` : '.terraform.lock.hcl が GitHub に上がっていない');
+}
 
 // ============================================================
 // 結果のまとめ
