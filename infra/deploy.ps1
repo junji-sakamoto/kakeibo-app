@@ -1,7 +1,7 @@
 <#
 ============================================================
-アプリ（フロントエンド・バックエンド）を EC2 に載せる（デプロイする）スクリプト（第5段階）
-くわしくは AWSデプロイガイド.md の 4-5
+アプリ（フロントエンド・バックエンド）を EC2 に載せる（デプロイする）スクリプト（第5段階から）
+くわしくは AWSデプロイガイド.md の 4-5（第6段階の CloudFront は 4-6）
 
 使い方（プロジェクトの一番上のフォルダで、PowerShell で実行する）：
   .\infra\deploy.ps1                 … GitHub の develop を載せる
@@ -20,7 +20,7 @@
   4. RDS に、アプリ用の利用者とテーブル・お試しデータを作る（ないときだけ。データはそのまま残す）
   5. 処理側の設定（backend/.env）を置き、systemd で起動し直す
   6. 画面側の部品を入れて組み立て（npm ci・npm run build）、nginx が配る場所（/var/www/kakeibo）に置く
-  7. 自分のパソコンから、画面と /api/health を確かめる
+  7. 自分のパソコンから、CloudFront の https のアドレスで、画面と /api/health を確かめる
 パスワードは、パソコンの画面やファイルに出さず、SSH の中だけで EC2 に渡す
 ============================================================
 #>
@@ -40,6 +40,7 @@ function ToBase64([string]$text) { [Convert]::ToBase64String([Text.Encoding]::UT
 # ------------------------------------------------------------
 Step 'つなぎ先を読みます（terraform output）'
 $ip = terraform -chdir=infra output -raw public_ip
+$appUrl = terraform -chdir=infra output -raw app_url
 $db = terraform -chdir=infra output -raw db_endpoint
 $admin = terraform -chdir=infra output -raw db_admin_username
 $adminParam = terraform -chdir=infra output -raw db_admin_password_parameter
@@ -142,8 +143,9 @@ if ($sshExit -ne 0) { throw "EC2 の中の手順が失敗しました（終了�
 # ------------------------------------------------------------
 # 7. 自分のパソコンから確かめる
 # ------------------------------------------------------------
-Step '7. 自分のパソコンから確かめます'
-$url = "http://$ip/"
+Step '7. 自分のパソコンから確かめます（CloudFront の https）'
+# 第6段階から、EC2 の 80番は CloudFront からだけ通すので、CloudFront のアドレスで確かめる
+$url = $appUrl
 $page = Invoke-WebRequest $url -UseBasicParsing -TimeoutSec 15
 $health = Invoke-RestMethod "${url}api/health" -TimeoutSec 15
 if ($page.StatusCode -ne 200 -or $health.status -ne 'ok') { throw "$url が正しく返りませんでした" }

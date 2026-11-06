@@ -7,3 +7,6 @@
 # 自分のパソコンの IP アドレス（EC2 に入ってよい場所）
 # 調べ方：(Invoke-RestMethod https://checkip.amazonaws.com).Trim()
 my_ip = "203.0.113.10"
+
+# 予算をこえそうなときに知らせるメールアドレス（第6段階）
+alert_email = "you@example.com"

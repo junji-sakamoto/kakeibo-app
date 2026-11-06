@@ -38,6 +38,11 @@ output "db_app_password_parameter" {
 }
 
 output "app_url" {
-  description = "アプリを開くアドレス（nginx の 80番。自分のパソコンからだけ開ける）"
-  value       = "http://${aws_instance.app.public_ip}/"
+  description = "アプリを開くアドレス（CloudFront の https。誰でも開ける。作り直すと変わる）"
+  value       = "https://${aws_cloudfront_distribution.main.domain_name}/"
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront の番号（ためておいたファイルを消すときなどに使う）"
+  value       = aws_cloudfront_distribution.main.id
 }

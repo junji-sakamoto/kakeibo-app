@@ -61,6 +61,28 @@ variable "db_backup_retention_days" {
   default     = 1
 }
 
+variable "alert_email" {
+  description = "予算をこえそうなときに知らせるメールアドレス（第6段階。terraform.tfvars に書き、GitHub には上げない）"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email))
+    error_message = "alert_email には、メールアドレスを書いてください。"
+  }
+}
+
+variable "monthly_budget_usd" {
+  description = "1か月の予算（ドル）。5,000円 ÷ 150円"
+  type        = number
+  default     = 33
+}
+
+variable "alert_threshold_usd" {
+  description = "この金額（ドル）をこえたらメールで知らせる。4,000円 ÷ 150円"
+  type        = number
+  default     = 27
+}
+
 variable "web_port" {
   description = "画面を開くポート番号（第5段階から nginx の 80番。第4段階までは Vite の 5173番だった）"
   type        = number

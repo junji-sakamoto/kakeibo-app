@@ -23,22 +23,27 @@
 | 第2段階 | EC2 に Node.js を入れる（Terraform の `user_data` で、起動したときに自動で入れる） | ✅ 完了（2026年11月5日） |
 | 第3段階 | RDS を作り、EC2 からつなぐ（EC2 には確かめ用の `mysql` コマンドも自動で入れる） | ✅ 完了（2026年11月5日） |
 | 第4段階 | アプリを載せて、自分のパソコンのブラウザで確かめる（GitHub の `develop` を取ってきて、手で起動する） | ✅ 画面が出ることを確認（2026年11月6日）。直したアプリの載せ替え（`git pull`）も確認。確かめたあと、全部消した |
-| **第5段階** | **フロントエンド・バックエンドを本番らしい形でデプロイする（nginx・systemd・80番、`deploy.ps1`）** | **✅ 完了（2026年11月6日。4-5、[構成設計書](docs/02_設計/07_構成設計書.md) の 4-8）**。何もない状態からも `deploy.ps1` 1行で載せられることを確認。確かめたあと、全部消した |
+| 第5段階 | フロントエンド・バックエンドを本番らしい形でデプロイする（nginx・systemd・80番、`deploy.ps1`） | ✅ 完了（2026年11月6日。4-5、[構成設計書](docs/02_設計/07_構成設計書.md) の 4-8）。何もない状態からも `deploy.ps1` 1行で載せられることを確認。確かめたあと、全部消した |
+| **第6段階** | **講師に見てもらう形：CloudFront で https・誰でも開ける（EC2 の 80番は CloudFront からだけ）、予算の通知** | **✅ 完了（2026年11月6日。4-6、[構成設計書](docs/02_設計/07_構成設計書.md) の 4-9）**。坂本さんもブラウザで確認。確かめたあと、全部消した。提出のときに作り直して公開する |
 
 ### 0-2. 今 AWS にあるもの（家計簿アプリのもの）
 
 | もの | 名前 | 作り方 | 状態 | 料金（1日） |
 |---|---|---|---|---|
-| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・起動したときに Node.js 26.13.0・mysql 8.4.9・git・nginx を自動で入れ、処理側を systemd に登録する） | Terraform | **⚪ 消した**（2026年11月6日。第5段階を確かめたあと、料金がかからないようにするため） | 0 ドル |
-| 門番（EC2） | `kakeibo-app`（入口：22番・80番を自分の IP からだけ） | Terraform | ⚪ 消した | 0 ドル |
+| EC2 | `kakeibo-app`（t4g.small・Amazon Linux 2023・ディスク 8GB・起動したときに Node.js 26.13.0・mysql 8.4.9・git・nginx を自動で入れ、処理側を systemd に登録する） | Terraform | **⚪ 消した**（2026年11月6日。第6段階を確かめたあと） | 0 ドル |
+| 門番（EC2） | `kakeibo-app`（入口：22番を自分の IP からだけ・80番を CloudFront からだけ） | Terraform | ⚪ 消した | 0 ドル |
 | SSH の鍵（AWS に登録した公開鍵） | `kakeibo-ec2` | Terraform | ⚪ 消した（パソコンの中の鍵 `~/.ssh/kakeibo-ec2` は残している） | 0 ドル |
-| RDS | `kakeibo-db`（MySQL 8.4.11・db.t4g.micro・ディスク 20GB 暗号化・インターネットからはつなげない・バックアップ1日分・時刻は Asia/Tokyo） | Terraform | **⚪ 消した**（2026年11月6日。データも控えも残っていない） | 0 ドル |
+| RDS | `kakeibo-db`（MySQL 8.4.11・db.t4g.micro・ディスク 20GB 暗号化・インターネットからはつなげない・バックアップ1日分・時刻は Asia/Tokyo） | Terraform | **⚪ 消した**（データも控えも残っていない） | 0 ドル |
 | 門番（RDS） | `kakeibo-db`（入口：3306番を EC2 の門番からだけ） | Terraform | ⚪ 消した | 0 ドル |
 | RDS の設定・サブネットのまとまり | `kakeibo-mysql84`・`kakeibo-db` | Terraform | ⚪ 消した | 0 ドル |
 | パスワード（2つ） | SSM パラメータストア `/kakeibo/db/admin-password`（管理者）・`/kakeibo/db/app-password`（アプリ用） | Terraform | ⚪ 消した（次に作るときは、新しいパスワードがその場で作られる） | 0 ドル |
+| CloudFront | `kakeibo`（`https://（ランダムな文字）.cloudfront.net/`） | Terraform | **⚪ 消した**（次に作ると、アドレスが変わる） | 0 ドル |
+| 予算の通知 | `kakeibo-monthly`（月 33 ドル。27 ドル・33 ドルでメール） | Terraform | ⚪ 消した（次に作ると、また作られる） | 0 ドル |
+| 札 `Project`（請求の仕組み） | 数えに使う（Active） | AWS CLI（4-6） | 🟢 有効のまま（料金はかからない） | 0 ドル |
 | S3 バケット（Terraform の記録） | `kakeibo-tfstate-（アカウントID）` | AWS CLI（2-2） | 🟢 あり（次に作るときも使うので残す） | ほぼ 0 ドル |
 
 - **今の料金の合計：ほぼ 0 ドル**（S3 バケットの小さなファイルだけ）
+- 次に作るとき（提出で公開するときなど）は、3章の `plan` → `apply`（15個）のあと、`.\infra\deploy.ps1` の1行で載せます。公開のアドレス（`app_url`）は、作るたびに変わります
 - 次に作るときは、3章の `plan` → `apply`（13個。RDS は10分ほど）のあと、**4-5 の `.\infra\deploy.ps1` の1行**でアプリを載せます（RDS は作り直すと空になりますが、利用者・テーブル・お試しデータも `deploy.ps1` が作ります）
 - EC2 を消したあと、次に作るときは、2章の準備（SSH の鍵・S3 バケット・`terraform.tfvars`・`init`）はもう済んでいるので、**3章の `plan` から**始めます。自分の IP アドレスが変わっていたら、先に 2-3 で `my_ip` を直します
 
@@ -80,11 +85,13 @@ infra/
 ├── versions.tf                ← Terraform と AWS プロバイダーの版、記録の置き場所（S3）、札
 ├── variables.tf               ← 外から渡す値（自分の IP アドレス、SSH の公開鍵、EC2 の大きさ、Node.js・mysql・RDS の版、画面側のポート など）
 ├── network.tf                 ← デフォルト VPC とサブネットを読む（作らない）
-├── security.tf                ← 門番（EC2：22番・80番を自分の IP からだけ／RDS：3306番を EC2 からだけ）
+├── security.tf                ← 門番（EC2：22番を自分の IP からだけ・80番を CloudFront からだけ／RDS：3306番を EC2 からだけ）
 ├── compute.tf                 ← EC2・SSH の公開鍵
 ├── user_data.sh.tftpl         ← EC2 が初めて起動したときに動く準備の手順（第2段階：Node.js／第3段階：mysql コマンド／第4段階：git）
 ├── database.tf                ← RDS・RDS の設定・管理者とアプリ用のパスワード（第3・4段階）
 ├── deploy.ps1                 ← アプリ（フロントエンド・バックエンド）を EC2 に載せるスクリプト（第5段階。4-5）
+├── cdn.tf                     ← CloudFront（https の入口）（第6段階。4-6）
+├── budget.tf                  ← 予算の通知（AWS Budgets）（第6段階。4-6）
 ├── outputs.tf                 ← 作ったあとに表示する値
 ├── terraform.tfvars.example   ← 外から渡す値の見本（GitHub に上げる）
 ├── terraform.tfvars           ← 外から渡す本物の値（GitHub に上げない）
@@ -198,7 +205,7 @@ Remove-Item infra\kakeibo.tfplan
   |---|---|
   | `public_ip` | EC2 の公開の住所（止めて動かすと変わる） |
   | `ssh_command` | EC2 に SSH で入るコマンド |
-  | `app_url` | アプリを開くアドレス（`http://（EC2 の住所）/`。4-5 でアプリを載せたあとに開ける） |
+  | `app_url` | アプリを開くアドレス（第6段階から `https://（ランダムな文字）.cloudfront.net/`。4-5 でアプリを載せたあとに開ける。作り直すと変わる） |
   | `instance_id` | EC2 の番号 |
 
 - 作ったら、「0. 今の状態」と「8. 変更の記録」を書き換えます
@@ -228,7 +235,7 @@ ssh -i "$HOME\.ssh\kakeibo-ec2" ec2-user@$ip
   aws ec2 describe-security-groups --filters Name=group-name,Values=kakeibo-app --query "SecurityGroups[].IpPermissions[].[FromPort,IpRanges[].CidrIp]" --output json
   ```
 
-  `22` と `80` の2つだけが、自分の IP アドレス（`…/32`）で出れば大丈夫です（第4段階までは `80` のかわりに `5173`）
+  `22` が自分の IP アドレス（`…/32`）だけで出れば大丈夫です。`80` は、第6段階からは IP アドレスではなく CloudFront の住所の一覧（`pl-…`）なので、ここには出ません（第5段階までは `80` も自分の IP、第4段階までは `5173`）
 
 ### 4-2. Node.js が入ったか確かめる（第2段階）
 
@@ -457,6 +464,54 @@ sudo journalctl -u kakeibo-backend -n 20 --no-pager  # 処理側の記録（エ�
 sudo ss -tlnp | awk '/LISTEN/ {print $4}'            # 0.0.0.0:80 と 127.0.0.1:3000 があればよい
 ```
 
+### 4-6. 講師に見てもらう形（第6段階：CloudFront・予算の通知）
+
+第6段階から、EC2 の前に **CloudFront** を置きます。講師・使う人は `https://（ランダムな文字）.cloudfront.net/` を開きます（[構成設計書](docs/02_設計/07_構成設計書.md) の 4-9）。
+
+| | 第5段階 | 第6段階 |
+|---|---|---|
+| 開くアドレス | `http://（EC2 の住所）/` | **`https://（ランダムな文字）.cloudfront.net/`**（`terraform -chdir=infra output -raw app_url`） |
+| 開ける人 | 自分のパソコンからだけ | **誰でも**（ログインなし） |
+| EC2 の 80番 | 自分の IP からだけ | **CloudFront からだけ**（自分のパソコンからも、EC2 に直接はつながらない） |
+| SSH（22番） | 自分の IP からだけ | 同じ |
+| 予算の通知 | なし | **AWS Budgets**：月 33 ドル。実際が 27 ドル（4,000円）をこえたら、見込みが 33 ドル（5,000円）をこえそうなら、`terraform.tfvars` の `alert_email` にメール |
+
+**作り方・載せ方**は第5段階と同じです（3章の `plan` → `apply` のあと、`.\infra\deploy.ps1`）。`plan` は `Plan: 15 to add`（第5段階の13個に、CloudFront と予算の2つ）。CloudFront を作るのに3分ほど、消すのに数分かかります。
+
+**はじめの1回だけ：予算の通知の準備**
+
+1. `infra/terraform.tfvars` に、通知を受け取るメールアドレスを書きます（GitHub には上がりません）
+
+   ```
+   alert_email = "（メールアドレス）"
+   ```
+
+2. `apply` で札（`Project = kakeibo`）の付いたものを作ったあと、請求の仕組みで札 `Project` を「数えに使う」と有効にします（予算が家計簿のものだけを数えるため。札が出てくるまで最大1日、有効にしてから予算に反映されるまで最大1日かかります）
+
+   ```powershell
+   aws ce list-cost-allocation-tags --region us-east-1 --tag-keys Project --query "CostAllocationTags[].Status"   # Inactive なら次を打つ
+   aws ce update-cost-allocation-tags-status --region us-east-1 --cost-allocation-tags-status TagKey=Project,Status=Active
+   ```
+
+   2026年11月6日に有効にしました。一度有効にすれば、作り直しても有効のままです
+
+**確かめること**
+
+```powershell
+$url = terraform -chdir=infra output -raw app_url
+$ip = terraform -chdir=infra output -raw public_ip
+(Invoke-WebRequest $url -UseBasicParsing).StatusCode                       # 200
+Invoke-RestMethod "${url}api/health"                                       # status ok
+# http で開くと https に移る（301）
+try { Invoke-WebRequest ($url -replace '^https','http') -MaximumRedirection 0 -UseBasicParsing } catch { [int]$_.Exception.Response.StatusCode }
+# EC2 の 80番に直接はつながらない（False）
+$c = New-Object Net.Sockets.TcpClient; $c.ConnectAsync($ip, 80).Wait(4000); $c.Close()
+# 予算
+aws budgets describe-budget --account-id (aws sts get-caller-identity --query Account --output text) --budget-name kakeibo-monthly --query "Budget.BudgetLimit"
+```
+
+> **CloudFront のアドレスは、作り直すたびに変わります。** 講師にアドレスを伝えたら、講師の確認が終わるまで `destroy` しません（そのあいだは1日約 0.85 ドル）。
+
 ## 5. 自分の IP アドレスが変わったとき
 
 家のネットの契約によっては、IP アドレスが変わることがあります。変わると、SSH でつながらなくなります（`Connection timed out`）。
@@ -516,6 +571,8 @@ sudo ss -tlnp | awk '/LISTEN/ {print $4}'            # 0.0.0.0:80 と 127.0.0.1:
 | `mysql: command not found`（起動の記録に `404 for https://repo.mysql.com/yum/…/el/2023.…/`） | MySQL の置き場所のフォルダの番号（`$releasever`）が、Amazon Linux 2023 では「2023.…」になり、ないフォルダを探している | `user_data.sh.tftpl` で、置き場所の登録の `$releasever` を `9` に置きかえている（2026年11月5日に直した） |
 | RDS につなぐと `Access denied` | パスワードが違う、または利用者の名前が違う | 4-3 の 2. のとおり、SSM パラメータストアから読んだパスワードと `db_admin_username` を使う |
 | RDS につなぐと止まったまま（`Can't connect to MySQL server`） | RDS がまだ作り終わっていない、または EC2 以外から（自分のパソコンから）つなごうとしている | `apply` が終わったか確かめる。RDS には EC2 からだけつなげる（そういう決まり） |
+| `https://…cloudfront.net/` で 502・504 が出る（第6段階） | CloudFront から EC2 に届いていない（nginx が止まっている、門番の 80番が CloudFront からになっていない、EC2 を作り直して CloudFront の送り先が古い） | EC2 で `systemctl is-active nginx`。`plan` で差がないか確かめ、あれば `apply` |
+| `http://（EC2 の住所）/` が開けない（第6段階） | 第6段階からは、EC2 の 80番は CloudFront からだけ。そういう決まり | `https://…cloudfront.net/`（`app_url`）で開く |
 | パソコンのブラウザで `http://（EC2 の住所）/` が開けない（第5段階） | nginx が動いていない、または IP アドレスが変わった | EC2 で `systemctl is-active nginx`。IP が変わったなら 5章 |
 | 「準備中です。アプリの画面はまだ置かれていません。」と出る | まだ `deploy.ps1` を動かしていない | 4-5 の `.\infra\deploy.ps1` を動かす |
 | 画面は出るが「サーバーとの通信に失敗しました」（第5段階） | 処理側（`kakeibo-backend`）が止まっている、または RDS につながっていない | EC2 で `systemctl status kakeibo-backend` と `sudo journalctl -u kakeibo-backend -n 30` を見る。`deploy.ps1` をもう一度動かす |
@@ -566,3 +623,9 @@ AWS に作ったもの・変えたもの・消したものと、確かめた結�
 | 2026年11月6日 | 5-6 `infra/deploy.ps1` を作り、動いている EC2 で動かした（2回目の形） | 利用者・テーブルは作り直さず、データもそのまま（17件・28件）。最後に「載せ終わりました」 |
 | 2026年11月6日 | 何もない状態から `deploy.ps1` だけで載せられるか：`destroy`（13個）→ `apply`（13個）→ `deploy.ps1` | **成功**：利用者・テーブル・お試しデータを新しく作り、処理側・画面とも動いた。主な操作の確かめ3つもすべて合格 |
 | 2026年11月6日 | 6章：`terraform destroy`（第5段階を確かめたあと、料金がかからない状態にする） | `Plan: 13 to destroy` を確かめてから消した。**13個を消した**。RDS は見つからない、控えも残っていない。残っているのは S3 バケットだけ |
+| 2026年11月6日 | 第6段階 6-2：`cdn.tf`（CloudFront）・`budget.tf`（予算）を足し、門番の 80番を CloudFront の住所の一覧（`pl-58a04531`）からだけに変え、`deploy.ps1` の最後の確かめを https に変えて、`plan` | `Plan: 15 to add`。3つの決まりとも `redirect-to-https`。予算は 33 ドル・通知は 27 ドル（実際）と 33 ドル（見込み） |
+| 2026年11月6日 | 6-3：`apply` → `deploy.ps1` | **15個を作った**（CloudFront 2分49秒、RDS 9分21秒、予算 10秒）。`deploy.ps1` は最後に `https://…cloudfront.net/` で画面 200・`/api/health` ok |
+| 2026年11月6日 | 6-4：確かめる | https で 200、http は 301 で https に移る、再読み込み 200、組み立てたファイルは2回目に `Hit from cloudfront`、API は毎回 EC2 へ（`Miss`）・`?month=` も届く。主な操作3つ（記録・カテゴリ・年間とスマートフォンの幅）合格。パソコンから EC2 の 80・3000・3306番に直接はつながらない。予算 `kakeibo-monthly` を確認 |
+| 2026年11月6日 | 請求の仕組みで札 `Project` を有効にした（`update-cost-allocation-tags-status`） | `Inactive` → `Active`。予算が家計簿のものだけを数えるため（反映まで最大1日） |
+| 2026年11月6日 | 坂本さんが `https://…cloudfront.net/` をブラウザで確かめた | 確認できた |
+| 2026年11月6日 | 6-5：`terraform destroy` | `Plan: 15 to destroy` を確かめてから消した（RDS 1分51秒、CloudFront 2分55秒）。**15個を消した**。EC2・RDS（控えも）・CloudFront・予算・門番・パスワードとも残っていない。残っているのは S3 バケットと、札 `Project` の有効の設定（料金はかからない）だけ |
