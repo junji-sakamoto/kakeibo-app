@@ -20,7 +20,7 @@
   2. GitHub からアプリを取ってくる（初めては git clone、2回目からは git pull）
   3. 処理側の部品を入れる（npm ci --omit=dev）
   4. RDS に、アプリ用の利用者とテーブル・お試しデータを作る（ないときだけ。データはそのまま残す）
-     -ResetData のときは、記録とカテゴリを全部消して、お試しデータ（カテゴリ17件・記録28件）を入れ直す
+     -ResetData のときは、記録とカテゴリを全部消して、お試しデータ（カテゴリ18件・記録28件）を入れ直す
   5. 処理側の設定（backend/.env）を置き、systemd で起動し直す
   6. 画面側の部品を入れて組み立て（npm ci・npm run build）、nginx が配る場所（/var/www/kakeibo）に置く
   7. 自分のパソコンから、CloudFront の https のアドレスで、画面と /api/health を確かめる

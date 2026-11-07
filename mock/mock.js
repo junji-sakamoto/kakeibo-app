@@ -18,6 +18,7 @@ const MSG = {
   N01: 'この月の記録はありません。',
   N02: 'カテゴリがありません。カテゴリ画面で登録してください。',
   N03: 'カテゴリがありません。',
+  N06: '繰越金は、家計簿を使い始めた月に1回だけ記録します。次の月からは、自動で繰り越されます。',
   N05: (count) => `このカテゴリは${count}件の記録で使われています。\n名前を変えると、すべての記録に反映されます。`,
   E01: '日付を入力してください。',
   E02: '日付は2000年1月1日から2099年12月31日までの、正しい日付を入力してください。',
@@ -96,7 +97,7 @@ const state = {
 
 // 最初から入れておくカテゴリ（database/sql/02_insert_categories.sql と同じ順番）
 [
-  ['income', ['給料', '賞与', '副業', '臨時収入', 'その他']],
+  ['income', ['給料', '賞与', '副業', '臨時収入', '繰越金', 'その他']],
   ['expense', ['食費', '外食', '日用品', '住居費', '光熱費', '通信費', '交通費', '医療費', '衣服・美容', '趣味・娯楽', '交際費', 'その他']],
 ].forEach(([type, names]) => {
   names.forEach((name) => state.categories.push({ id: state.nextCategoryId++, type, name }));
@@ -258,6 +259,13 @@ function renderRecordList() {
   });
   const diff = income - expense;
 
+  // 前月からの繰越：表示中の月より前の、すべての記録の（収入 − 支出）。保存せず、毎回計算する
+  let carryover = 0;
+  state.records.forEach((r) => {
+    if (r.date < `${prefix}01`) carryover += findCategory(r.categoryId).type === 'income' ? r.amount : -r.amount;
+  });
+  const closing = carryover + diff; // 繰越後の残高
+
   const rows = list.map((r) => {
     const c = findCategory(r.categoryId);
     return `
@@ -286,6 +294,10 @@ function renderRecordList() {
       <div class="summary-card income"><div class="label">収入</div><div class="value">${formatYen(income)}</div></div>
       <div class="summary-card expense"><div class="label">支出</div><div class="value">${formatYen(expense)}</div></div>
       <div class="summary-card"><div class="label">差額</div><div class="value ${diff < 0 ? 'is-minus' : ''}">${formatYen(diff)}</div></div>
+    </div>
+    <div class="summary carry">
+      <div class="summary-card"><div class="label">前月からの繰越</div><div class="value ${carryover < 0 ? 'is-minus' : ''}">${formatYen(carryover)}</div></div>
+      <div class="summary-card"><div class="label">繰越後の残高</div><div class="value ${closing < 0 ? 'is-minus' : ''}">${formatYen(closing)}</div></div>
     </div>
 
     <div class="page-head">
@@ -403,8 +415,18 @@ function renderRecordForm(id) {
       <select id="f-category">
         <option value="">選んでください</option>
         ${options.map((c) => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
-      </select>`;
+      </select>
+      <p class="info" id="carryover-info" hidden>${MSG.N06}</p>`;
     saveButton.disabled = false;
+    // 収入用の「繰越金」を選んでいるときだけ、N06 を出す
+    const select = area.querySelector('#f-category');
+    const info = area.querySelector('#carryover-info');
+    const update = () => {
+      const c = select.value ? findCategory(Number(select.value)) : null;
+      info.hidden = !(c && c.type === 'income' && c.name === '繰越金');
+    };
+    select.addEventListener('change', update);
+    update();
   }
   drawCategorySelect(form.type, form.categoryId);
 

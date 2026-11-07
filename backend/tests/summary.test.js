@@ -89,11 +89,12 @@ describe('API12 年の合計と、月ごとの合計', () => {
     assert.deepEqual({ income: sum('income'), expense: sum('expense'), balance: sum('balance') }, r.body.totals);
   });
 
-  test('記録一覧（API1）の月の合計と、同じ月の値が一致する', async () => {
+  test('記録一覧（API1）の月の合計と、同じ月の値が一致する（繰越は記録一覧だけにあるので比べない）', async () => {
     const year = await call('GET', '/api/summary?year=2099');
     const month = await call('GET', '/api/records?month=2099-03');
     const { income, expense, balance } = year.body.months.find((m) => m.month === '2099-03');
-    assert.deepEqual({ income, expense, balance }, month.body.totals);
+    const t = month.body.totals;
+    assert.deepEqual({ income, expense, balance }, { income: t.income, expense: t.expense, balance: t.balance });
   });
 
   test('年がない・形が違う・範囲外のときは 400（S04）', async () => {

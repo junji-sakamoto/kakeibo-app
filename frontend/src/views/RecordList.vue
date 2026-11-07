@@ -75,6 +75,11 @@ async function remove(r) {
     <div class="summary-card expense"><div class="label">支出</div><div class="value">{{ show(totals?.expense) }}</div></div>
     <div class="summary-card"><div class="label">差額</div><div class="value" :class="{ 'is-minus': totals?.balance < 0 }">{{ show(totals?.balance) }}</div></div>
   </div>
+  <!-- 前月からの繰越（前の月までのすべての記録の 収入 − 支出）と、繰越後の残高（繰越 ＋ 差額）。収入の合計には入れない -->
+  <div class="summary carry">
+    <div class="summary-card carryover"><div class="label">前月からの繰越</div><div class="value" :class="{ 'is-minus': totals?.carryover < 0 }">{{ show(totals?.carryover) }}</div></div>
+    <div class="summary-card closing"><div class="label">繰越後の残高</div><div class="value" :class="{ 'is-minus': totals?.closing < 0 }">{{ show(totals?.closing) }}</div></div>
+  </div>
 
   <div class="page-head">
     <h1 class="page-title">記録</h1>

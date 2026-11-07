@@ -28,7 +28,8 @@ test.describe('読み込めなかったとき（処理側につながらない�
     await expect(ui.toast(page)).toHaveText(S01);
     await expect(page.locator('.list .load-error')).toHaveText(S01);
     await expect(page.getByRole('button', { name: '読み込み直す' })).toBeVisible();
-    await expect(page.locator('.summary-card .value')).toHaveText(['－', '－', '－']);
+    // 収入・支出・差額と、前月からの繰越・繰越後の残高の5つとも「－」（0円とは表示しない）
+    await expect(page.locator('.summary-card .value')).toHaveText(['－', '－', '－', '－', '－']);
     await expect(page.getByText('この月の記録はありません。')).toHaveCount(0);
   });
 
