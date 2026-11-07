@@ -4,7 +4,7 @@
 // ============================================================
 
 import { test, expect } from '@playwright/test';
-import { api, categoryId, createRecord, cleanUp, thisMonth, monthLabel, ui } from './helpers.js';
+import { api, categoryId, createRecord, cleanUp, thisMonth, monthLabel, ui, yen } from './helpers.js';
 
 const WEEK = '日月火水木金土';
 const weekday = (ymd) => WEEK[new Date(`${ymd}T00:00:00`).getDay()];
@@ -48,21 +48,56 @@ test.describe('画面1 記録一覧画面', () => {
     await expect(ui.row(page, 'E2E給料').locator('.badge')).toHaveText('収入');
     await expect(ui.row(page, 'E2E外食').locator('.category')).toHaveText('外食');
     await expect(ui.row(page, 'E2E給料').locator('.amount')).toHaveText('300,000円');
-    await expect(page.locator('.summary-card .value')).toHaveText(['300,000円', '3,000円', '297,000円']);
+    await expect(ui.totals(page)).toHaveText(['300,000円', '3,000円', '297,000円']);
   });
 
   test('機能2・機能5：記録のない月は「この月の記録はありません。」（N01）と 0円 を表示する', async ({ page }) => {
     await page.goto('/records?month=2099-10');
     await expect(page.locator('.list .empty')).toHaveText('この月の記録はありません。');
-    await expect(page.locator('.summary-card .value')).toHaveText(['0円', '0円', '0円']);
+    await expect(ui.totals(page)).toHaveText(['0円', '0円', '0円']);
   });
 
   test('機能5：差額がマイナスのときは「-」を付けて赤系の色にする', async ({ page, request }) => {
     await createRecord(request, { date: '2099-12-01', categoryId: food, amount: 5200, memo: 'E2Eマイナス' });
     await page.goto('/records?month=2099-12');
-    const balance = page.locator('.summary-card .value').nth(2);
+    const balance = ui.totals(page).nth(2);
     await expect(balance).toHaveText('-5,200円');
     await expect(balance).toHaveClass(/is-minus/);
+  });
+
+  test('機能5（繰越）：前月からの繰越は前の月までの全部の記録の 収入 − 支出、繰越後の残高は 繰越 ＋ 差額。収入の合計には入れない', async ({ page, request }) => {
+    // 試験の記録を入れる前の、2099年11月の繰越（お試しデータなどから計算された金額）
+    const base = (await api(request, 'GET', '/records?month=2099-11')).body.totals.carryover;
+    await createRecord(request, { date: '2099-11-20', categoryId: food, amount: 999, memo: 'E2E前の月' });
+    await createRecord(request, { date: '2099-12-10', categoryId: salary, amount: 300000, memo: 'E2E給料' });
+    await createRecord(request, { date: '2099-12-11', categoryId: food, amount: 1000, memo: 'E2E食費' });
+
+    await page.goto('/records?month=2099-12');
+    await expect(ui.totals(page)).toHaveText(['300,000円', '1,000円', '299,000円']); // 繰越は収入に入らない
+    await expect(ui.carry(page)).toHaveText([yen(base - 999), yen(base - 999 + 299000)]);
+
+    // 前の月に戻ると、その月の「繰越後の残高」が、12月の「前月からの繰越」と同じ
+    await page.getByRole('button', { name: '◀ 前の月' }).click();
+    await expect(page.locator('.month-label')).toHaveText('2099年11月');
+    await expect(ui.carry(page)).toHaveText([yen(base), yen(base - 999)]);
+
+    // 前の月の記録を削除すると、保存していないので、12月の繰越もすぐに変わる
+    await page.getByRole('button', { name: '削除' }).click();
+    await ui.dialog(page).getByRole('button', { name: '削除する' }).click();
+    await expect(ui.toast(page)).toHaveText('記録を削除しました。');
+    await page.getByRole('button', { name: '次の月 ▶' }).click();
+    await expect(ui.carry(page)).toHaveText([yen(base), yen(base + 299000)]);
+  });
+
+  test('機能5（繰越）：繰越がマイナスのときは「-」を付けて赤系の色にする', async ({ page, request }) => {
+    // 前の月までの残高がマイナスになるように、11月に大きな支出を入れる
+    const base = (await api(request, 'GET', '/records?month=2099-11')).body.totals.carryover;
+    const amount = Math.min(Math.max(base + 1, 1), 9999999);
+    await createRecord(request, { date: '2099-11-20', categoryId: food, amount, memo: 'E2E大きな支出' });
+    await page.goto('/records?month=2099-12');
+    const carryover = ui.carry(page).first();
+    await expect(carryover).toHaveText(yen(base - amount));
+    await expect(carryover).toHaveClass(/is-minus/);
   });
 
   test('月の切り替え：「前の月」「次の月」「今月」で、表示する月が変わる', async ({ page }) => {
@@ -126,6 +161,29 @@ test.describe('画面2 記録入力画面（登録）', () => {
     await page.getByLabel('メモ').fill('あ'.repeat(101));
     await page.getByRole('button', { name: '保存する' }).click();
     await expect(ui.fieldError(page, 'memo')).toHaveText('メモは100文字以内で入力してください。');
+  });
+
+  test('N06：収入用の「繰越金」を選んでいるときだけ、1回だけ記録する注意書きを出す（保存はできる）', async ({ page, request }) => {
+    const N06 = '繰越金は、家計簿を使い始めた月に1回だけ記録します。次の月からは、自動で繰り越されます。';
+    await page.goto('/records/new?month=2099-12');
+    await expect(page.getByText(N06)).toHaveCount(0);
+    await page.getByLabel('収入', { exact: true }).check();
+    await page.getByLabel('カテゴリ').selectOption({ label: '繰越金' });
+    await expect(page.getByText(N06)).toBeVisible();
+    await page.getByLabel('カテゴリ').selectOption({ label: '給料' });
+    await expect(page.getByText(N06)).toHaveCount(0);
+
+    // 入力の間違いではないので、繰越金でも保存できる。ふつうの収入として、その月の収入の合計に入る
+    await page.getByLabel('カテゴリ').selectOption({ label: '繰越金' });
+    await page.getByLabel('日付').fill('2099-12-01');
+    await page.getByLabel('金額').fill('50000');
+    await page.getByLabel('メモ').fill('E2E使い始めの手持ち');
+    await page.getByRole('button', { name: '保存する' }).click();
+    await expect(ui.toast(page)).toHaveText('記録を登録しました。');
+    await expect(ui.row(page, 'E2E使い始めの手持ち').locator('.category')).toHaveText('繰越金');
+    await expect(ui.totals(page).first()).toHaveText('50,000円');
+    const { body } = await api(request, 'GET', '/records?month=2099-12');
+    expect(body.totals.income).toBe(50000);
   });
 
   test('種類を「収入」に切り替えると、カテゴリの選択肢が収入用に変わり、「未選択」に戻る（「その他」は一番下）', async ({ page, request }) => {
@@ -221,7 +279,7 @@ test.describe('記録の削除', () => {
     await createRecord(request, { date: '2099-12-08', categoryId: food, amount: 1200, memo: 'E2E削除' });
     await createRecord(request, { date: '2099-12-09', categoryId: food, amount: 300, memo: 'E2E残す' });
     await page.goto('/records?month=2099-12');
-    await expect(page.locator('.summary-card .value').nth(1)).toHaveText('1,500円');
+    await expect(ui.totals(page).nth(1)).toHaveText('1,500円');
 
     await ui.row(page, 'E2E削除').getByRole('button', { name: '削除', exact: true }).click();
     await expect(ui.dialog(page)).toBeVisible();
@@ -237,7 +295,7 @@ test.describe('記録の削除', () => {
     await ui.dialog(page).getByRole('button', { name: '削除する' }).click();
     await expect(ui.toast(page)).toHaveText('記録を削除しました。');
     await expect(ui.row(page, 'E2E削除')).toHaveCount(0);
-    await expect(page.locator('.summary-card .value').nth(1)).toHaveText('300円'); // 合計も計算し直される
+    await expect(ui.totals(page).nth(1)).toHaveText('300円'); // 合計も計算し直される
   });
 });
 

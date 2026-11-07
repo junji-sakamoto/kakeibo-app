@@ -51,22 +51,27 @@ recordsRouter.get('/', async (req, res) => {
     [from, to],
   );
 
-  // 合計：計算はデータベース（SQL）に任せる
+  // 合計と繰越：計算はデータベース（SQL）に任せる
+  //   income・expense：その月の収入・支出の合計
+  //   carryover    ：その月の1日より前の、すべての記録の（収入 − 支出）＝前月からの繰越（保存せず、毎回計算する）
   const [[sum]] = await pool.query(
-    `SELECT COALESCE(SUM(CASE WHEN c.type = 'income'  THEN r.amount END), 0) AS income,
-            COALESCE(SUM(CASE WHEN c.type = 'expense' THEN r.amount END), 0) AS expense
+    `SELECT COALESCE(SUM(CASE WHEN r.recorded_on >= ? AND c.type = 'income'  THEN r.amount END), 0) AS income,
+            COALESCE(SUM(CASE WHEN r.recorded_on >= ? AND c.type = 'expense' THEN r.amount END), 0) AS expense,
+            COALESCE(SUM(CASE WHEN r.recorded_on <  ? THEN IF(c.type = 'income', r.amount, -r.amount) END), 0) AS carryover
      FROM records AS r
      JOIN categories AS c ON c.id = r.category_id
-     WHERE r.recorded_on >= ? AND r.recorded_on < ?`,
-    [from, to],
+     WHERE r.recorded_on < ?`,
+    [from, from, from, to],
   );
   // SUM の結果は文字で返ってくるので、数に変える
   const income = Number(sum.income);
   const expense = Number(sum.expense);
+  const carryover = Number(sum.carryover);
+  const balance = income - expense;
 
   res.status(200).json({
     month,
-    totals: { income, expense, balance: income - expense },
+    totals: { income, expense, balance, carryover, closing: carryover + balance },
     records,
   });
 });

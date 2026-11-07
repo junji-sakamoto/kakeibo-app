@@ -34,6 +34,9 @@ const errors = reactive({ date: '', category: '', amount: '', memo: '' });
 // 選んだ種類のカテゴリだけ（並び順は処理側から届いた順：「その他」は一番下）
 const options = computed(() => categories.value.filter((c) => c.type === form.type));
 
+// 収入用の「繰越金」を選んでいるか（選んでいるときは N06 の注意書きを出す。毎月入れて二重に数えないため）
+const isCarryoverCategory = computed(() => options.value.some((c) => String(c.id) === form.categoryId && c.type === 'income' && c.name === '繰越金'));
+
 // 種類を切り替えたら、カテゴリは「未選択」に戻す
 const onTypeChange = () => { form.categoryId = ''; };
 
@@ -135,6 +138,8 @@ async function save() {
           <option value="">選んでください</option>
           <option v-for="c in options" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
         </select>
+        <!-- 間違いではなく案内なので、N05 と同じ「お知らせ」の見た目にする -->
+        <p v-if="isCarryoverCategory" class="info">{{ MSG.N06 }}</p>
       </template>
       <template v-else>
         <!-- 選んだ種類のカテゴリが1つもない（N02）→ 保存できないようにする -->

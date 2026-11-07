@@ -54,12 +54,17 @@ export function thisMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// 金額の表示（1200 →「1,200円」、-5200 →「-5,200円」）
+export const yen = (n) => `${n.toLocaleString('ja-JP')}円`;
+
 // 「2026-11」→「2026年11月」
 export const monthLabel = (m) => `${Number(m.slice(0, 4))}年${Number(m.slice(5))}月`;
 
 // 画面の部品の見つけ方（何度も使うもの）
 export const ui = {
   toast: (page) => page.locator('.toast'),
+  totals: (page) => page.locator('.summary:not(.carry) .summary-card .value'), // 収入・支出・差額
+  carry: (page) => page.locator('.summary.carry .summary-card .value'), // 前月からの繰越・繰越後の残高
   rows: (page) => page.locator('.list-row:not(.list-head)'),
   row: (page, memo) => page.locator('.list-row:not(.list-head)', { has: page.locator('.memo', { hasText: memo }) }),
   categoryRow: (page, name) => page.locator('.category-row').filter({ has: page.getByText(name, { exact: true }) }),

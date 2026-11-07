@@ -17,6 +17,7 @@ import { pool } from '../src/db.js';
 let server;
 let base;
 let ids; // 試験で使うカテゴリの番号
+let before2099Nov; // 2099年11月より前の繰越（お試しデータなどから計算する）
 
 // 処理側にお願いを送り、結果の番号（status）と本文（body）を返す
 async function call(method, path, body, { raw = false } = {}) {
@@ -38,6 +39,13 @@ before(async () => {
 
   const id = async (type, name) => (await pool.query('SELECT id FROM categories WHERE type = ? AND name = ?', [type, name]))[0][0].id;
   ids = { salary: await id('income', '給料'), food: await id('expense', '食費'), eatOut: await id('expense', '外食') };
+
+  // 試験の記録（2099年11月から）より前の、すべての記録の（収入 − 支出）。繰越の試験の基準にする
+  const [[row]] = await pool.query(
+    `SELECT COALESCE(SUM(IF(c.type = 'income', r.amount, -r.amount)), 0) AS v
+     FROM records AS r JOIN categories AS c ON c.id = r.category_id WHERE r.recorded_on < '2099-11-01'`,
+  );
+  before2099Nov = Number(row.v);
 
   // 処理側を、空いている番号の入口で起動する
   server = createApp().listen(0, '127.0.0.1');
@@ -62,17 +70,39 @@ describe('API1 記録の一覧と合計', () => {
     const r = await call('GET', '/api/records?month=2099-12');
     assert.equal(r.status, 200);
     assert.equal(r.body.month, '2099-12');
-    assert.deepEqual(r.body.totals, { income: 300000, expense: 3000, balance: 297000 });
+    // 繰越：2099年11月より前の分に、11月30日の支出 999円を引いたもの。残高は、繰越 ＋ 差額
+    const carryover = before2099Nov - 999;
+    assert.deepEqual(r.body.totals, { income: 300000, expense: 3000, balance: 297000, carryover, closing: carryover + 297000 });
     assert.deepEqual(r.body.records.map((x) => x.id), [c.body.id, b.body.id, a.body.id]);
     assert.deepEqual(r.body.records[0], {
       id: c.body.id, date: '2099-12-31', type: 'expense', categoryId: ids.eatOut, categoryName: '外食', amount: 2000, memo: 'ランチ',
     });
   });
 
-  test('記録のない月は、空の一覧と 0 円の合計を返す', async () => {
+  test('記録のない月は、空の一覧と 0 円の合計を返す（繰越と残高は、前の月までの記録から計算する）', async () => {
     const r = await call('GET', '/api/records?month=2099-10');
     assert.equal(r.status, 200);
-    assert.deepEqual(r.body, { month: '2099-10', totals: { income: 0, expense: 0, balance: 0 }, records: [] });
+    assert.deepEqual(r.body, {
+      month: '2099-10', totals: { income: 0, expense: 0, balance: 0, carryover: before2099Nov, closing: before2099Nov }, records: [],
+    });
+  });
+
+  test('繰越：ある月の繰越後の残高は、次の月の前月からの繰越と同じ。前の月の記録を直すと、すぐに繰越が変わる', async () => {
+    const nov = await call('GET', '/api/records?month=2099-11');
+    const dec = await call('GET', '/api/records?month=2099-12');
+    assert.equal(nov.body.totals.closing, dec.body.totals.carryover);
+
+    // 11月に収入を足すと、12月の繰越がその分だけ増える（保存せずに毎回計算しているため）
+    const added = await call('POST', '/api/records', sample({ date: '2099-11-15', categoryId: ids.salary, amount: 50000 }));
+    const dec2 = await call('GET', '/api/records?month=2099-12');
+    assert.equal(dec2.body.totals.carryover, dec.body.totals.carryover + 50000);
+    // 収入の合計には入れない（12月の収入は変わらない）
+    assert.equal(dec2.body.totals.income, dec.body.totals.income);
+
+    // 消すと元に戻る
+    await call('DELETE', `/api/records/${added.body.id}`);
+    const dec3 = await call('GET', '/api/records?month=2099-12');
+    assert.equal(dec3.body.totals.carryover, dec.body.totals.carryover);
   });
 
   test('年月がない・形が違う・範囲外のときは 400（S04）', async () => {

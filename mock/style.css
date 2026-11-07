@@ -145,6 +145,8 @@ a { color: var(--color-primary); }
 .summary-card.income .value { color: var(--color-income); }
 .summary-card.expense .value { color: var(--color-expense); }
 .summary-card .value.is-minus { color: var(--color-expense); }
+/* 前月からの繰越・繰越後の残高（月の合計のすぐ下に、2つ並べる） */
+.summary.carry { grid-template-columns: repeat(2, 1fr); margin-top: -8px; }
 
 /* ---------- 記録の一覧 ---------- */
 .list {
@@ -292,7 +294,7 @@ a { color: var(--color-primary); }
 
 /* ---------- スマートフォン（横幅 640px 以下） ---------- */
 @media (max-width: 640px) {
-  .summary { grid-template-columns: 1fr; gap: 8px; }
+  .summary, .summary.carry { grid-template-columns: 1fr; gap: 8px; }
   .summary-card { display: flex; justify-content: space-between; align-items: baseline; }
   .summary-card .value { font-size: 18px; }
 

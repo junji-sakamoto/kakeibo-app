@@ -133,7 +133,9 @@
   "totals": {
     "income": 0,
     "expense": 5200,
-    "balance": -5200
+    "balance": -5200,
+    "carryover": 120000,
+    "closing": 114800
   },
   "records": [
     {
@@ -154,6 +156,8 @@
 | `totals.income` | 収入の合計 |
 | `totals.expense` | 支出の合計 |
 | `totals.balance` | 差額（収入 − 支出）。マイナスもある |
+| `totals.carryover` | 前月からの繰越。その月の1日より前の**すべての記録**の（収入 − 支出）。マイナスもある。記録がなければ 0（2026年11月7日に追加） |
+| `totals.closing` | 繰越後の残高（`carryover` ＋ `balance`）。次の月の `carryover` と同じになる（2026年11月7日に追加） |
 | `records` | 記録の一覧。日付の新しい順、同じ日は番号の大きい順。0件のときは `[]`（空の一覧） |
 | `records[].type` | カテゴリの種類（記録そのものは種類を持たないので、カテゴリから取り出す） |
 
