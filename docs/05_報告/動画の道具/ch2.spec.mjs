@@ -2,9 +2,10 @@
 // 字幕の文章は、台本（自分用のため GitHub には上げていない）の「話すこと」と同じ
 // 金額が台本と合わないときは止まる（撮る前に、お試しデータを最初の状態に戻しておく）
 import { test, expect } from './pw.mjs';
-import { setup, say, clearCaption, title, press, point, type, choose, setDate } from './lib.mjs';
+import { BASE, setup, say, clearCaption, title, press, point, type, choose, setDate, cleanUp } from './lib.mjs';
 
-const BASE = process.env.APP_URL || 'http://localhost:5173/';
+test.afterEach(async ({ request }) => cleanUp(request)); // 途中で止まっても、撮影で作った記録を残さない
+
 const pad = (n) => String(n).padStart(2, '0');
 const now = new Date();
 const last = new Date(now.getFullYear(), now.getMonth() - 1, 15);

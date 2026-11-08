@@ -5,9 +5,12 @@
 //   npx playwright test --config ../docs/05_報告/動画の道具/video.config.mjs
 //   本番のアドレスで撮るとき：$env:APP_URL = "https://（CloudFront のアドレス）/" を指定してから実行する
 //
+//   1つの章だけ撮るとき：最後に ch2 のように章の番号を付ける
+//   第6章を撮る前に、品質チェックの結果を保存しておく（ch6.spec.mjs の先頭を参照）
+//
 // ・撮った動画は、このフォルダの out/ に WebM でできる（GitHub には上げない）
-// ・MP4 にするとき（ffmpeg を winget で入れておく）：
-//   ffmpeg -i video.webm -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -movflags +faststart -an 名前.mp4
+// ・MP4 にするとき（ffmpeg を winget で入れておく）：このフォルダの make-mp4.ps1 を実行する
+//   （章ごとに「第2章_月ごとの記録.mp4」のような名前で、ビデオのフォルダの「家計簿の動画」に置く）
 // ・画面は 1280×900。下に字幕の場所をとるため、ふつうより縦に長くしている
 // ============================================================
 
@@ -24,6 +27,7 @@ export default defineConfig({
     ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1,
     video: { mode: 'on', size: { width: 1280, height: 900 } }, locale: 'ja-JP', timezoneId: 'Asia/Tokyo',
     actionTimeout: 15000,
+    bypassCSP: true, // GitHub の画面にも字幕を出すため（GitHub は、ページにあとから見た目を足すことを止めている）
   },
   expect: { timeout: 10000 },
   // 自分のパソコンで撮るときは、処理側と画面側を起動する（本番のアドレスで撮るときは使わない）
