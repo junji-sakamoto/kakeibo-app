@@ -1,0 +1,35 @@
+# 自分のパソコンで MySQL を動かすための設定ファイル（Docker Compose）
+# 使い方は docs/03_手順書/01_データベースの手順書.md を参照
+
+# このまとまりの名前（Docker の画面に表示される名前）
+name: kakeibo
+
+services:
+  # データベース（MySQL 8.4）
+  # 版は細かい版まで固定する（作り直しても同じ版になるように）
+  # 版を上げるときは、docs/03_手順書/00_開発環境と版の一覧.md の手順で行い、記録を残す
+  db:
+    image: mysql:8.4.13
+    container_name: kakeibo-db
+    # パスワードなどの秘密の情報は .env ファイルから読み込む（.env は GitHub に上げない）
+    env_file: .env
+    environment:
+      # 日時を日本時間にする
+      TZ: Asia/Tokyo
+    # 自分のパソコンからだけつなげるようにする（127.0.0.1 = 自分のパソコン）
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      # データの保存場所（コンテナを消してもデータが残る）
+      - db-data:/var/lib/mysql
+      # 最初に起動したときだけ、sql フォルダの中の SQL を番号順に実行する
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    # 起動できたかを確かめる方法
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db-data:

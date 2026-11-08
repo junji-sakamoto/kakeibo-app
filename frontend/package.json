@@ -1,0 +1,36 @@
+{
+  "name": "kakeibo-frontend",
+  "version": "1.0.0",
+  "description": "家計簿アプリの画面側（フロントエンド）。Vue.js で画面を作り、処理側（バックエンド）の API とやりとりする",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "26.x"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test:e2e": "playwright test"
+  },
+  "author": "坂本 順治",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "vue": "3.5.44",
+    "vue-router": "5.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@vitejs/plugin-vue": "6.0.10",
+    "eslint": "10.14.0",
+    "eslint-plugin-vue": "10.12.0",
+    "globals": "17.14.0",
+    "vite": "8.3.5",
+    "vue-eslint-parser": "10.4.1"
+  },
+  "overrides": {
+    "minimatch": "11.0.4"
+  }
+}

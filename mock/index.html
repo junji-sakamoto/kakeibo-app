@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>家計簿（画面モック）</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- モックであることのお知らせ -->
+  <div class="mock-banner">
+    これは画面イメージを確認するための<strong>モック（試作品）</strong>です。データは保存されません（再読み込みすると元に戻ります）。
+  </div>
+
+  <!-- 画面の上の部分（ヘッダー）：すべての画面に共通 -->
+  <header class="header">
+    <a class="header-title" href="#/records" data-reset-month>家計簿</a>
+    <nav class="header-nav">
+      <a href="#/records" data-reset-month data-nav="records">記録</a>
+      <a href="#/categories" data-nav="categories">カテゴリ</a>
+    </nav>
+  </header>
+
+  <!-- 完了・エラーのお知らせ（数秒間だけ表示） -->
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- ここに各画面を表示する -->
+  <main id="app" class="main"></main>
+
+  <!-- 削除の確認の窓（画面の中に表示するダイアログ） -->
+  <dialog id="confirm-dialog" class="dialog">
+    <form method="dialog">
+      <h2 class="dialog-title">確認</h2>
+      <p class="dialog-message"></p>
+      <div class="dialog-buttons">
+        <button type="submit" value="cancel" class="btn" autofocus>キャンセル</button>
+        <button type="submit" value="ok" class="btn btn-danger-fill">削除する</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="mock.js"></script>
+</body>
+</html>
