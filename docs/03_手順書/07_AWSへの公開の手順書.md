@@ -202,6 +202,8 @@ IP アドレスが変わると、SSH でつながらなくなります（`Connec
 | `plan` で `my_ip`・`alert_email` のエラー | `terraform.tfvars` の値がない、または形が違う | 2章の 3. を行う |
 | `ssh` で `Connection timed out` | 自分の IP アドレスが変わった、または EC2 がまだ起動していない | 1分ほど待つ。それでもだめなら 6章 |
 | `ssh` で `REMOTE HOST IDENTIFICATION HAS CHANGED` | 作り直した EC2 が、前と同じ住所になった | `ssh-keygen -R （EC2 の住所）` で古い鍵を忘れさせてから、つなぎ直す |
+| `apply` で `FreeTierRestrictionError: The specified backup retention period exceeds the maximum …` | 無料プランでは、RDS の自動バックアップを1日分より長くできない | `infra/variables.tf` の `db_backup_retention_days` を `1` にして、`plan`・`apply` をやり直す（作れたものはそのまま。足りないものだけ作られる） |
+| `apply` が途中で失敗したあとに作り直したら、`deploy.ps1` の手順4で `ERROR 1045 (28000): Access denied for user 'kakeibo_admin'` | データベースの管理者のパスワードは `apply` のたびに新しく作られる。1回目に保存したパスワード（SSM）と、2回目に作った RDS のパスワードが食い違った | RDS のパスワードを、保存したパスワードに合わせる（画面に出さずに渡す）：<br>`$pw = aws ssm get-parameter --name (terraform -chdir=infra output -raw db_admin_password_parameter) --with-decryption --query Parameter.Value --output text`<br>`aws rds modify-db-instance --db-instance-identifier kakeibo-db --master-user-password $pw --apply-immediately --query DBInstance.DBInstanceStatus; $pw = $null`<br>1分ほど待ってから `deploy.ps1` をもう一度動かす |
 | `deploy.ps1` が「EC2 の中の手順が失敗しました」で止まる | 手順 1〜6 のどこかで失敗した | 表示された最後の「=== 〇. …」のところを見る。直したら、もう一度動かす（何度動かしてもよい） |
 | 「準備中です。アプリの画面はまだ置かれていません。」と出る | まだ `deploy.ps1` を動かしていない | 3章の3行目を動かす |
 | 公開のアドレスで 502・504 | CloudFront から EC2 に届いていない（nginx が止まっている など） | EC2 で `systemctl is-active nginx`。`plan` で差がないか確かめ、あれば `apply` |
