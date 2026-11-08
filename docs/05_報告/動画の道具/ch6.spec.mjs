@@ -6,7 +6,7 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from './pw.mjs';
-import { GITHUB, GITHUB_TREE, setup, say, clearCaption, title, scrollTo, scrollDown, point } from './lib.mjs';
+import { GITHUB, GITHUB_TREE, setup, say, title, next, scrollTo, scrollDown, point } from './lib.mjs';
 
 const QC_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '品質チェックの結果.txt');
 
@@ -80,6 +80,5 @@ test('第6章 どう作り、どう確かめたか', async ({ page }) => {
   await point(page.locator('.test'), 1500);
   await say(page, '処理側の試験が 40件、画面を操作する試験が、Edge と Chrome で 92件、すべて合格しています。', 5500);
   await say(page, '入力のチェックは、画面側だけでなく、処理側でも行っていて、試験で確かめています。', 5000);
-  await clearCaption(page);
-  await page.waitForTimeout(800);
+  await next(page, 7);
 });

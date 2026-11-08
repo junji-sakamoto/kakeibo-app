@@ -1,6 +1,6 @@
 // 第5章 使いやすさと安全（スマートフォンの幅・https・存在しないページ）
 import { test, expect } from './pw.mjs';
-import { BASE, setup, say, clearCaption, title, point } from './lib.mjs';
+import { BASE, setup, say, title, next, point } from './lib.mjs';
 
 // スマートフォンの大きさ（390×780）の枠の中に、アプリを表示する画面
 const PHONE = (src) => `<!doctype html><meta charset="utf-8">
@@ -51,6 +51,5 @@ test('第5章 使いやすさと安全', async ({ page }) => {
   await expect(page.getByText('ページが見つかりません。')).toBeVisible();
   await point(page.locator('.empty'), 1000);
   await say(page, 'ページが見つかりませんと表示し、記録一覧画面へ戻れるリンクを出します。');
-  await clearCaption(page);
-  await page.waitForTimeout(800);
+  await next(page, 6);
 });

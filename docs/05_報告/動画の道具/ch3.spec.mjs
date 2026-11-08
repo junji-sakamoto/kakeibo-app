@@ -1,6 +1,6 @@
 // 第3章 年間の集計
 import { test, expect } from './pw.mjs';
-import { BASE, setup, say, clearCaption, title, press, point } from './lib.mjs';
+import { BASE, setup, say, title, next, press, point } from './lib.mjs';
 
 test('第3章 年間の集計', async ({ page }) => {
   await setup(page);
@@ -33,5 +33,5 @@ test('第3章 年間の集計', async ({ page }) => {
   await press(page.getByRole('button', { name: '今年' }));
   await expect(cards.first()).toHaveText('503,000円');
   await page.waitForTimeout(1000);
-  await clearCaption(page);
+  await next(page, 4);
 });

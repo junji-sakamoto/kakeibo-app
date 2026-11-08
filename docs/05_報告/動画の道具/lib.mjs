@@ -92,6 +92,13 @@ export async function title(page, sub, main, ms = 2500) {
   await page.evaluate(() => window.__show('__title', ''));
 }
 
+// 章の終わりに、次の章を知らせる（全画面。章の見出しと同じ形）
+export const CHAPTERS = ['はじめに', '月ごとの記録', '年間の集計', 'カテゴリの設定', '使いやすさと安全', 'どう作り、どう確かめたか', 'まとめ'];
+export async function next(page, n, ms = 3000) {
+  await clearCaption(page);
+  await title(page, '次は', `第${n}章　${CHAPTERS[n - 1]}`, ms);
+}
+
 // 押す場所に印を付けてから押す
 export async function press(locator, { wait = 700 } = {}) {
   await locator.scrollIntoViewIfNeeded();

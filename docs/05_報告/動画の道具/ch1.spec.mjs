@@ -1,6 +1,6 @@
 // 第1章 はじめに（GitHub の README と、本番環境の構成）
 import { test } from './pw.mjs';
-import { BASE, GITHUB, setup, say, clearCaption, title, scrollTo, scrollDown } from './lib.mjs';
+import { BASE, GITHUB, setup, say, title, next, scrollTo, scrollDown } from './lib.mjs';
 
 test('第1章 はじめに', async ({ page }) => {
   await setup(page);
@@ -23,5 +23,5 @@ test('第1章 はじめに', async ({ page }) => {
   await page.goto(BASE);
   await page.locator('.summary.carry').waitFor();
   await page.waitForTimeout(1500);
-  await clearCaption(page);
+  await next(page, 2);
 });

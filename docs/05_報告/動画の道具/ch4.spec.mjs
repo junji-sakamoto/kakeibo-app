@@ -1,6 +1,6 @@
 // 第4章 カテゴリの設定
 import { test, expect } from './pw.mjs';
-import { BASE, setup, say, clearCaption, title, press, point, type, cleanUp } from './lib.mjs';
+import { BASE, setup, say, title, next, press, point, type, cleanUp } from './lib.mjs';
 
 test.afterEach(async ({ request }) => cleanUp(request)); // 途中で止まっても、撮影で作ったカテゴリを残さない
 
@@ -62,5 +62,5 @@ test('第4章 カテゴリの設定', async ({ page }) => {
   await expect(page.locator('.toast')).toHaveText('カテゴリを削除しました。');
   await expect(pet).toHaveCount(0);
   await say(page, 'ペットが一覧から消えました。');
-  await clearCaption(page);
+  await next(page, 5);
 });
