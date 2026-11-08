@@ -2,9 +2,10 @@
 // 字幕の文章は、台本（自分用のため GitHub には上げていない）の「話すこと」と同じ
 // 金額が台本と合わないときは止まる（撮る前に、お試しデータを最初の状態に戻しておく）
 import { test, expect } from './pw.mjs';
-import { setup, say, clearCaption, title, press, point, type, choose, setDate } from './lib.mjs';
+import { BASE, setup, say, title, next, press, point, type, choose, setDate, cleanUp } from './lib.mjs';
 
-const BASE = process.env.APP_URL || 'http://localhost:5173/';
+test.afterEach(async ({ request }) => cleanUp(request)); // 途中で止まっても、撮影で作った記録を残さない
+
 const pad = (n) => String(n).padStart(2, '0');
 const now = new Date();
 const last = new Date(now.getFullYear(), now.getMonth() - 1, 15);
@@ -127,6 +128,6 @@ test('第2章 月ごとの記録', async ({ page }) => {
   await say(page, '繰越金を選ぶと、1回だけ記録することと、次の月からは自動で繰り越されることを、\n案内として表示します。毎月入れて、二重に数えないようにするためです。', 7000);
   await say(page, '今回は登録せずに、戻ります。', 1800);
   await press(page.getByRole('link', { name: '戻る' }));
-  await clearCaption(page);
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1000);
+  await next(page, 3);
 });
