@@ -56,9 +56,9 @@ variable "db_instance_class" {
 }
 
 variable "db_backup_retention_days" {
-  description = "RDS の自動バックアップを残す日数（非機能要件の 7日。第3〜6段階は確かめるだけなので 1日だった）"
+  description = "RDS の自動バックアップを残す日数（無料プランでは 1日まで。7日にすると FreeTierRestrictionError で作れない：2026-11-08 に確かめた）"
   type        = number
-  default     = 7
+  default     = 1
 }
 
 variable "alert_email" {
