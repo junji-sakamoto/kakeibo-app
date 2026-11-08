@@ -15,37 +15,37 @@
 
 #### 第1章　はじめに
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/6f076acd-9516-4ff1-b13d-fde12c591e30
 
 #### 第2章　月ごとの記録
 
 記録の登録・修正・削除、入力の間違い、前月からの繰越と残高
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/7d3a22a6-139a-4665-8dd4-a02b0791aeec
 
 #### 第3章　年間の集計
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/916d329d-b8e1-4357-a92f-916cf1530bc4
 
 #### 第4章　カテゴリの設定
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/cbaf6a72-5be2-467e-b7d1-2ba75a8c1f0a
 
 #### 第5章　使いやすさと安全
 
 スマートフォンの幅、https、存在しないページ
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/21d3ef6b-ca24-4a0c-ad17-717448c296dc
 
 #### 第6章　どう作り、どう確かめたか
 
 資料、Terraform、Issue とプルリクエスト、品質チェック
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/9dcb56fa-77f3-4076-8831-f60fd9f277e9
 
 #### 第7章　まとめ
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/c000b9b2-9ee9-4d04-aef6-3e873e0fc257
 
 ### スマートフォン（iPhone・携帯の回線で本番環境を開いたところ）
 
