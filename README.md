@@ -17,25 +17,25 @@ AWS の本番環境（`https://…cloudfront.net/`）で、主な機能を動か
 
 記録の登録・修正・削除、入力の間違い、前月からの繰越と残高
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/5f081302-686d-4ff4-b296-959b0f95d1b6
 
 #### 第2章　年間の集計
 
 1年の合計と、1月〜12月の月ごとの合計
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/8716bdc1-85af-44ff-869b-4858ddb8d3da
 
 #### 第3章　カテゴリの設定
 
 カテゴリの登録・修正・削除、同じ名前や使われているカテゴリの扱い
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/e3265a70-e4f5-4e87-a61d-86b04297e0b1
 
 #### 第4章　使いやすさと安全
 
 スマートフォンの幅、https、存在しないページ
 
-（動画をここに貼る）
+https://github.com/user-attachments/assets/1f20a9f0-f868-4c70-a835-e79c70517ec7
 
 ### スマートフォン（iPhone・携帯の回線で本番環境を開いたところ）
 
