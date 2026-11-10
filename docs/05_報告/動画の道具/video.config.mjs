@@ -6,11 +6,11 @@
 //   本番のアドレスで撮るとき：$env:APP_URL = "https://（CloudFront のアドレス）/" を指定してから実行する
 //
 //   1つの章だけ撮るとき：最後に ch2 のように章の番号を付ける
-//   第6章を撮る前に、品質チェックの結果を保存しておく（ch6.spec.mjs の先頭を参照）
 //
+// ・章は、機能を見せる4つ（第1章 月ごとの記録・第2章 年間の集計・第3章 カテゴリの設定・第4章 使いやすさと安全）
 // ・撮った動画は、このフォルダの out/ に WebM でできる（GitHub には上げない）
 // ・MP4 にするとき（ffmpeg を winget で入れておく）：このフォルダの make-mp4.ps1 を実行する
-//   （章ごとに「第2章_月ごとの記録.mp4」のような名前で、ビデオのフォルダの「家計簿の動画」に置く）
+//   （章ごとに「第1章_月ごとの記録.mp4」のような名前で、ビデオのフォルダの「家計簿の動画」に置く）
 // ・画面は 1280×900。下に字幕の場所をとるため、ふつうより縦に長くしている
 // ============================================================
 
@@ -21,7 +21,7 @@ import { defineConfig, devices } from './pw.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 export default defineConfig({
-  testDir: '.', testMatch: /ch\d+\.spec\.mjs/, outputDir: './out', workers: 1, retries: 0, reporter: 'list',
+  testDir: '.', testMatch: /ch[1-4]\.spec\.mjs/, outputDir: './out', workers: 1, retries: 0, reporter: 'list',
   timeout: 8 * 60 * 1000,
   use: {
     ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1,
