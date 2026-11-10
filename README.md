@@ -7,49 +7,62 @@
 
 ## 動作の確認（動画とスクリーンショット）
 
-2026年11月8日に、AWS の本番環境（`https://…cloudfront.net/`）で撮影しました。本番環境は、料金がかからないように、撮影のあとに消しています（[構成設計書](docs/02_設計/07_構成設計書.md) の8章）。
+AWS の本番環境（`https://…cloudfront.net/`）で、主な機能を動かして撮影しました。本番環境は、料金がかからないように、撮影のあとに消しています（[構成設計書](docs/02_設計/07_構成設計書.md) の8章）。
 
-### 動画（章ごと・字幕つき）
+### 動画（機能ごと・字幕つき）
 
 <!-- 動画は GitHub にアップロードしたもの（https://github.com/user-attachments/assets/…）を、それぞれの見出しの下に1行で貼る -->
 
-#### 第1章　はじめに
-
-https://github.com/user-attachments/assets/6f076acd-9516-4ff1-b13d-fde12c591e30
-
-#### 第2章　月ごとの記録
+#### 第1章　月ごとの記録
 
 記録の登録・修正・削除、入力の間違い、前月からの繰越と残高
 
-https://github.com/user-attachments/assets/7d3a22a6-139a-4665-8dd4-a02b0791aeec
+https://github.com/user-attachments/assets/5f081302-686d-4ff4-b296-959b0f95d1b6
 
-#### 第3章　年間の集計
+#### 第2章　年間の集計
 
-https://github.com/user-attachments/assets/916d329d-b8e1-4357-a92f-916cf1530bc4
+1年の合計と、1月〜12月の月ごとの合計
 
-#### 第4章　カテゴリの設定
+https://github.com/user-attachments/assets/8716bdc1-85af-44ff-869b-4858ddb8d3da
 
-https://github.com/user-attachments/assets/cbaf6a72-5be2-467e-b7d1-2ba75a8c1f0a
+#### 第3章　カテゴリの設定
 
-#### 第5章　使いやすさと安全
+カテゴリの登録・修正・削除、同じ名前や使われているカテゴリの扱い
+
+https://github.com/user-attachments/assets/e3265a70-e4f5-4e87-a61d-86b04297e0b1
+
+#### 第4章　使いやすさと安全
 
 スマートフォンの幅、https、存在しないページ
 
-https://github.com/user-attachments/assets/21d3ef6b-ca24-4a0c-ad17-717448c296dc
-
-#### 第6章　どう作り、どう確かめたか
-
-資料、Terraform、Issue とプルリクエスト、品質チェック
-
-https://github.com/user-attachments/assets/9dcb56fa-77f3-4076-8831-f60fd9f277e9
-
-#### 第7章　まとめ
-
-https://github.com/user-attachments/assets/c000b9b2-9ee9-4d04-aef6-3e873e0fc257
+https://github.com/user-attachments/assets/1f20a9f0-f868-4c70-a835-e79c70517ec7
 
 ### スマートフォン（iPhone・携帯の回線で本番環境を開いたところ）
 
 <img src="docs/05_報告/画像/スマートフォンの初期画像.png" alt="スマートフォンで開いた、月ごとの記録の画面" width="300">
+
+## 技術スタック
+
+課題の条件として、**これまでの学習で使ってきた技術（Java・React・PostgreSQL）とは別の技術**を選びました。
+
+| 部品 | 使ったもの | 選んだ理由（要点） |
+|---|---|---|
+| 言語 | JavaScript | 画面側と処理側を同じ言語で書ける。書いたものがそのまま動く |
+| 画面側 | Vue.js 3・Vue Router・Vite | React の代わりになり、HTML に近い書き方ができる。Vue.js の公式がすすめる作り方 |
+| 見た目 | CSS（そのまま書く） | 画面モックで決めた見た目を、そのまま使うため |
+| 処理側 | Node.js 26（LTS）・Express 5 | Java の代わり。画面側と同じ JavaScript で書け、利用者と資料が多い |
+| 処理側の安全 | helmet | 安全のための HTTP の設定を、まとめて付けられる（Express の公式がすすめる） |
+| データベース | MySQL 8.4（LTS） | PostgreSQL の代わり。AWS RDS で使え、長い期間修正が提供される版 |
+| データベースとつなぐ部品 | mysql2（SQL をそのまま書く） | SQL を学ぶため。プレースホルダーで SQL インジェクションを防げる |
+| 自分のパソコンのデータベース | Docker（Docker Compose） | 設定をファイルに残して、同じ環境を何度でも作り直せる |
+| 本番環境 | AWS：CloudFront・EC2・RDS | CloudFront で https にし、EC2 で画面（nginx）と処理側（systemd）を動かし、データは RDS に置く |
+| 本番環境の作り方（IaC） | Terraform・AWS CLI | 管理画面で手作業で作らず、コードで何度でも同じ形に作り直し、使い終わったらまとめて消せる |
+| 試験 | node:test（API）・Playwright（E2E。Edge と Chrome） | API は Node.js に入っている試験の道具で、画面は実際のブラウザを動かして確かめる |
+| 書き方のチェック | ESLint（Vue.js 用の決まりも） | JavaScript で一番よく使われる道具。Java の Checkstyle の役割をする |
+| ソースコードの管理 | Git・GitHub（Issue とプルリクエスト） | 機能ごとに Issue とプルリクエストに分けて進めた |
+
+- 比べたほかの候補と、くわしい理由は [技術スタック](docs/02_設計/01_技術スタック.md)、細かい版（例：Express 5.3.0、Vue.js 3.5.44）は [開発環境と版の一覧](docs/03_手順書/00_開発環境と版の一覧.md) にあります
+- 本番環境の組み立ては、下の「[本番環境（AWS）の構成](#本番環境awsの構成)」にあります
 
 ## 資料の一覧
 
