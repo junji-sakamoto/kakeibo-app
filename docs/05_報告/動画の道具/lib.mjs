@@ -4,9 +4,6 @@
 
 // 撮る画面のアドレス（本番で撮るときは APP_URL に CloudFront のアドレスを入れる）
 export const BASE = (process.env.APP_URL || 'http://localhost:5173/').replace(/\/?$/, '/');
-// GitHub の資料を見せるときのブランチ
-export const GITHUB = `https://github.com/junji-sakamoto/kakeibo-app/blob/${process.env.GH_REF || 'develop'}/`;
-export const GITHUB_TREE = `https://github.com/junji-sakamoto/kakeibo-app/tree/${process.env.GH_REF || 'develop'}/`;
 
 const OVERLAY_SCRIPT = () => {
   if (window.top !== window) return; // 画面の中の枠（iframe）には出さない
@@ -85,18 +82,26 @@ export async function clearCaption(page) {
 }
 
 // 章の見出し（全画面）
-export async function title(page, sub, main, ms = 2500) {
+// keep：消さずに出したままにする（章の終わりの画面で、動画をその画面のまま終えるため）
+export async function title(page, sub, main, ms = 2500, { keep = false } = {}) {
   await ensure(page);
   await page.evaluate(([a, b]) => window.__show('__title', `<div class="t1">${a}</div><div class="t2">${b}</div>`), [esc(sub), esc(main)]);
   await page.waitForTimeout(ms);
-  await page.evaluate(() => window.__show('__title', ''));
+  if (!keep) await page.evaluate(() => window.__show('__title', ''));
 }
 
 // 章の終わりに、次の章を知らせる（全画面。章の見出しと同じ形）
-export const CHAPTERS = ['はじめに', '月ごとの記録', '年間の集計', 'カテゴリの設定', '使いやすさと安全', 'どう作り、どう確かめたか', 'まとめ'];
+// 動画は機能だけを見せる4つの章（2026年11月10日、講師の指摘で、はじめに・作り方・まとめの章はやめた）
+export const CHAPTERS = ['月ごとの記録', '年間の集計', 'カテゴリの設定', '使いやすさと安全'];
 export async function next(page, n, ms = 3000) {
   await clearCaption(page);
-  await title(page, '次は', `第${n}章　${CHAPTERS[n - 1]}`, ms);
+  await title(page, '次は', `第${n}章　${CHAPTERS[n - 1]}`, ms, { keep: true });
+}
+
+// 最後の章の終わり
+export async function end(page, ms = 3500) {
+  await clearCaption(page);
+  await title(page, '家計簿アプリ', 'ご覧いただき、ありがとうございました', ms, { keep: true });
 }
 
 // 押す場所に印を付けてから押す
